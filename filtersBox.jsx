@@ -141,8 +141,11 @@ function getWorkFolder() {
 
             return workFolder;
         } else {
-			var workFolder = "~/work/"
-			return workFolder
+            if (Folder(workFolder).exists) {
+                return workFolder
+            } else {
+                return "D:/OneDrive/work/"
+            }
         }
     }
 }
