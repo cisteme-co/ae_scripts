@@ -141,12 +141,15 @@ function getWorkFolder() {
 
             return workFolder;
         } else {
-            if (Folder(workFolder).exists) {
-                return workFolder
-            } else {
-                return "D:/OneDrive/work/"
-            }
-        }
+			var workFolder = "~/OneDrive/work/"
+
+			if (Folder(workFolder).exists) {
+				return workFolder
+			} else {
+				return "D:/OneDrive/work/"
+			}
+
+		}
     }
 }
 
