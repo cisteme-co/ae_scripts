@@ -1,5 +1,4 @@
 function buildUI(thisObj) {
-	var scriptPath = File($.fileName).path;
 	var rootFolder = File($.fileName).parent.parent.path;
 	var iconsPath = rootFolder + '/assets/projectBox/';
 	var section = 'ProjectsBoxPrefs';
@@ -56,7 +55,7 @@ function buildUI(thisObj) {
 	var newCut = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '02.png'),
+		File(iconsPath + 'file-plus-2.png'),
 		{ style: 'toolbutton' }
 	);
 	newCut.onClick = function () {
@@ -72,42 +71,37 @@ function buildUI(thisObj) {
 		);
 	};
 
-	var importFiles = buttonGroup.add(
-		'iconbutton',
-		undefined,
-		File(iconsPath + '01.png'),
-		{ style: 'toolbutton' }
-	);
-
 	var lastVersion = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '03.png'),
+		File(iconsPath + 'external-link.png'),
 		{ style: 'toolbutton' }
 	);
 	lastVersion.onClick = function () {
 		openFile(projectsDrop, episodeDrop, cutInput, takeInput);
 	};
 
-	var retimer = buttonGroup.add(
+	var importCells = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '04.png'),
+		File(iconsPath + 'folder-down.png'),
 		{ style: 'toolbutton' }
 	);
-	retimer.onClick = function () {
-		var retimerFile = File(rootFolder + '/_project_box//logic/retimer.jsx');
-		if (retimerFile.exists) {
-			$.evalFile(retimerFile);
-		} else {
-			alert('retimer.jsx not found!');
-		}
+
+	var importBGBtm = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + 'image-down.png'),
+		{ style: 'toolbutton' }
+	);
+	importBGBtm.onClick = function () {
+		importBG();
 	};
 
 	var timesheet = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '05.png'),
+		File(iconsPath + 'list-ordered.png'),
 		{ style: 'toolbutton' }
 	);
 	timesheet.onClick = function () {
@@ -151,32 +145,47 @@ function buildUI(thisObj) {
 		}
 	};
 
-	var location = buttonGroup.add(
+	var retimer = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '06.png'),
+		File(iconsPath + 'timer-reset.png'),
 		{ style: 'toolbutton' }
 	);
-	location.onClick = openRootFolder;
+	retimer.onClick = function () {
+		var retimerFile = File(rootFolder + '/_project_box//logic/retimer.jsx');
+		if (retimerFile.exists) {
+			$.evalFile(retimerFile);
+		} else {
+			alert('retimer.jsx not found!');
+		}
+	};
 
 	var fileReplace = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '07.png'),
+		File(iconsPath + 'replace-all.png'),
 		{ style: 'toolbutton' }
 	);
 
 	var removeUnused = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '08.png'),
+		File(iconsPath + 'trash-2.png'),
 		{ style: 'toolbutton' }
 	);
+
+	var location = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + 'folder-root.png'),
+		{ style: 'toolbutton' }
+	);
+	location.onClick = openRootFolder;
 
 	var render = buttonGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '09.png'),
+		File(iconsPath + 'arrow-right-from-line.png'),
 		{ style: 'toolbutton' }
 	);
 	render.onClick = renderBG;
@@ -187,10 +196,10 @@ function buildUI(thisObj) {
 
 	var workerGroup = secondRow.add('group');
 	workerGroup.spacing = 0;
-	workerGroup.add('statictext', undefined, 'Worker');
+	workerGroup.add('statictext', undefined, T('worker'));
 
 	var workerKey = 'workerName';
-	var defaultWorker = $.getenv('COMPUTERNAME') || 'Worker';
+	var defaultWorker = $.getenv('COMPUTERNAME') || T('worker');
 	var savedWorker = app.settings.haveSetting(section, workerKey)
 		? app.settings.getSetting(section, workerKey)
 		: defaultWorker;
@@ -211,14 +220,30 @@ function buildUI(thisObj) {
 	var takeButton = takeGroup.add(
 		'iconbutton',
 		undefined,
-		File(iconsPath + '02.png'),
+		File(iconsPath + 'diamond-plus.png'),
 		{ style: 'toolbutton' }
 	);
 
 	secondRow.add('panel', [100, 0, 103, 20]);
 
-	var retakeInput = secondRow.add('edittext', undefined, 'Retake');
+	var retakeInput = secondRow.add('edittext', undefined, T('retake'));
 	retakeInput.characters = 23;
+
+	// Helptips
+	newCut.helpTip = TT('newCut');
+	lastVersion.helpTip = TT('lastVersion');
+	importCells.helpTip = TT('importCells');
+	importBGBtm.helpTip = TT('importBG');
+	timesheet.helpTip = TT('timesheet');
+	retimer.helpTip = TT('retimer');
+	fileReplace.helpTip = TT('fileReplace');
+	removeUnused.helpTip = TT('removeUnused');
+	location.helpTip = TT('location');
+	render.helpTip = TT('render');
+	takeInput.helpTip = TT('takeUp');
+	takeButton.helpTip = TT('takeUp');
+	workerInput.helpTip = TT('worker');
+	retakeInput.helpTip = TT('retake');
 
 	panel.layout.layout(true);
 	panel.layout.resize();

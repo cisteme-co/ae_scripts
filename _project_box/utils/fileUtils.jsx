@@ -15,6 +15,24 @@ function readDropboxJSON(file) {
 	return false;
 }
 
+// Utility: get file extension lowercase
+function getFileExtension(fileName) {
+	var match = fileName.match(/\.([^.]+)$/);
+	return match ? match[1].toLowerCase() : '';
+}
+
+function getNthParentFolder(startFolder, n) {
+	var folder = startFolder;
+	for (var i = 0; i < n; i++) {
+		if (folder.parent) {
+			folder = folder.parent;
+		} else {
+			break;
+		}
+	}
+	return folder;
+}
+
 function getWorkFolder() {
 	var appdataFolder = Folder('~/./AppData/Local/').path;
 	var dropboxFolder = appdataFolder + '/local/Dropbox/';

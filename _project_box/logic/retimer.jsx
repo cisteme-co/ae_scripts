@@ -77,11 +77,7 @@
 			app.settings.saveSetting(section, 'framerate', framerateInput.text);
 		};
 
-		var nestedComps = panelGroup.add(
-			'checkbox',
-			undefined,
-			'Nested Compositions'
-		);
+		var nestedComps = panelGroup.add('checkbox', undefined, T('nestedComps'));
 		nestedComps.value = savedNested;
 		nestedComps.onChange = function () {
 			app.settings.saveSetting(
@@ -90,6 +86,7 @@
 				nestedComps.value.toString()
 			);
 		};
+		nestedComps.helpTip = TT('nestedComps');
 
 		var applyButton = panelGroup.add('button', undefined, 'Apply');
 		applyButton.onClick = function () {

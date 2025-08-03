@@ -37,6 +37,20 @@ function createCut(
 	}
 
 	if (thisTemplate != '') {
+		// Determine output file path early
+		var newFilePath = production + '/' + episode.text + '/cuts/' + allCuts;
+		var outputFile = File(
+			newFilePath +
+				'/' +
+				thisTemplate.name.replace('00', episode).replace('000', allCuts)
+		);
+
+		// Block if file already exists
+		if (outputFile.exists) {
+			alert('Cut "' + allCuts + '" already exists. Operation cancelled.');
+			return;
+		}
+
 		app.project.close(CloseOptions.PROMPT_TO_SAVE_CHANGES);
 		app.open(File(thisTemplate));
 
@@ -48,6 +62,9 @@ function createCut(
 		var cameraComp = getComp('camera');
 		var filtersComp = getComp('filters');
 		var renderComp = getComp(templateName);
+
+		var base3D = getComp('000_3d');
+		base3D.name = allCuts + '_3d';
 
 		for (var i = 0; i < cuts.length; i++) {
 			var cut = cuts[i];
@@ -86,6 +103,8 @@ function createCut(
 		getFolder('000').remove();
 		renderComp.remove();
 
+		renameWorker(workerInput.text);
+
 		var newFilePath = production + '/' + episode.text + '/cuts/' + allCuts;
 		if (!Folder(newFilePath).exists) {
 			new Folder(newFilePath).create();
@@ -99,7 +118,12 @@ function createCut(
 			)
 		);
 
-		renameWorker(workerInput.text);
+		for (var i = 1; i <= app.project.numItems; i++) {
+			var item = app.project.item(i);
+			if (item instanceof CompItem && item.name.indexOf('_work_') === 0) {
+				item.openInViewer();
+			}
+		}
 
 		alert('c."' + allCuts + '" created!');
 	} else {

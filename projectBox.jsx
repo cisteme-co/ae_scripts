@@ -6,6 +6,8 @@
 
 	$.evalFile(new File(rootFolder.fsName + '/assets/json2.js'));
 
+	$.evalFile(scriptFolder.fsName + '/_project_box/utils/_i18n.jsx');
+
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/utils/fileUtils.jsx')
 	);
@@ -15,6 +17,9 @@
 
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/createCut.jsx')
+	);
+	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/importBG.jsx')
 	);
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/renameWorker.jsx')

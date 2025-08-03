@@ -8,6 +8,40 @@ function replaceComp(replaceCompName, sourceComp, newComp) {
 	}
 }
 
+function getCurrentCompFrameRate() {
+	if (app.project.activeItem && app.project.activeItem instanceof CompItem) {
+		return app.project.activeItem.frameRate;
+	}
+	// fallback, e.g. 24 fps
+	return 24;
+}
+
+// Utility: find or create a folder by name inside a parent folder (or project root if no parent)
+function findOrCreateFolder(name, parentFolder) {
+	var folders = parentFolder ? parentFolder.items : app.project.items;
+	for (var i = 1; i <= folders.length; i++) {
+		var item = folders[i];
+		if (item instanceof FolderItem && item.name === name) {
+			return item;
+		}
+	}
+	// Not found, create it
+	if (parentFolder) {
+		return parentFolder.items.addFolder(name);
+	} else {
+		return app.project.items.addFolder(name);
+	}
+}
+
+// Utility: get nested folder by path array, create folders if missing
+function getOrCreateNestedFolder(pathArray) {
+	var currentFolder = null;
+	for (var i = 0; i < pathArray.length; i++) {
+		currentFolder = findOrCreateFolder(pathArray[i], currentFolder);
+	}
+	return currentFolder;
+}
+
 function getFolder(theName) {
 	for (var i = 1; i <= app.project.numItems; i++) {
 		if (
