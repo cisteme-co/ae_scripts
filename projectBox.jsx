@@ -25,6 +25,10 @@
 		new File(scriptFolder.fsName + '/_project_box/logic/renameWorker.jsx')
 	);
 	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/incrementTake.jsx')
+	);
+	$.evalFile(new File(scriptFolder.fsName + '/_project_box/logic/retake.jsx'));
+	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/openFile.jsx')
 	);
 	$.evalFile(

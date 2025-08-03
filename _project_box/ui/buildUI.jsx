@@ -224,10 +224,39 @@ function buildUI(thisObj) {
 		{ style: 'toolbutton' }
 	);
 
+	takeButton.onClick = function () {
+		if (!app.project.file) {
+			alert('Please save your project file first.');
+			return;
+		}
+
+		var fileName = app.project.file.name;
+		var fileNameSplit = fileName.split('_');
+		var oldTake = fileNameSplit[fileNameSplit.length - 1].split('.')[0]; // e.g., "t01"
+
+		// Extract numeric part
+		var prefix = oldTake.match(/[^\d]+/)[0]; // e.g., "t"
+		var number = parseInt(oldTake.match(/\d+/)[0], 10); // e.g., 1
+
+		var newNumber = number + 1;
+
+		var newTake = prefix + newNumber; // "t02"
+
+		takeInput.text = newTake;
+		incrementTake(newTake);
+	};
+
+	takeInput.onChange = function () {
+		incrementTake(takeInput.text);
+	};
+
 	secondRow.add('panel', [100, 0, 103, 20]);
 
 	var retakeInput = secondRow.add('edittext', undefined, T('retake'));
 	retakeInput.characters = 23;
+	retakeInput.onChange = function () {
+		retake(retakeInput.text);
+	};
 
 	// Helptips
 	newCut.helpTip = TT('newCut');
