@@ -1,0 +1,260 @@
+function buildUI(thisObj) {
+	var scriptPath = File($.fileName).path;
+	var rootFolder = File($.fileName).parent.parent.path;
+	var iconsPath = rootFolder + '/assets/projectBox/';
+	var section = 'ProjectsBoxPrefs';
+
+	var keys = {
+		project: 'lastProjectIndex',
+		episode: 'lastEpisodeIndex',
+		cut: 'lastCutValue',
+	};
+
+	var framerates = [8, 12, 15, 23.976, 24, 29.97, 30];
+	var takes = [
+		'コンテ撮 (c)',
+		'原撮 (g)',
+		'3DCG撮 (3d_t)',
+		'タイミング撮 (t)',
+		'仮本撮 (v0)',
+		'本撮 (v)',
+	];
+	var takesCodes = ['c1', 'g1', '3D_t1', 't1', 'v0', 'v1'];
+
+	var panel =
+		thisObj instanceof Panel
+			? thisObj
+			: new Window('palette', 'Projects Box', undefined, { resizeable: true });
+	panel.spacing = 4;
+
+	var firstRow = panel.add('group');
+	firstRow.orientation = 'row';
+	firstRow.spacing = 5;
+
+	var projectsDrop = firstRow.add('dropdownlist', undefined, []);
+	projectsDrop.preferredSize.width = 100;
+	var episodeDrop = firstRow.add('dropdownlist', undefined, []);
+	var cutInput = firstRow.add('edittext', undefined, '000');
+	cutInput.characters = 3;
+
+	var savedProject = app.settings.haveSetting(section, keys.project)
+		? parseInt(app.settings.getSetting(section, keys.project), 10)
+		: 0;
+	var savedEpisode = app.settings.haveSetting(section, keys.episode)
+		? parseInt(app.settings.getSetting(section, keys.episode), 10)
+		: 0;
+	var savedCut = app.settings.haveSetting(section, keys.cut)
+		? app.settings.getSetting(section, keys.cut)
+		: '000';
+
+	cutInput.text = savedCut;
+
+	var buttonGroup = firstRow.add('group');
+	buttonGroup.orientation = 'row';
+	buttonGroup.spacing = 0;
+
+	var newCut = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '02.png'),
+		{ style: 'toolbutton' }
+	);
+	newCut.onClick = function () {
+		handleNewCut(
+			projectsDrop,
+			episodeDrop,
+			cutInput,
+			framerates,
+			takes,
+			takesCodes,
+			workerInput,
+			takeInput
+		);
+	};
+
+	var importFiles = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '01.png'),
+		{ style: 'toolbutton' }
+	);
+
+	var lastVersion = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '03.png'),
+		{ style: 'toolbutton' }
+	);
+	lastVersion.onClick = function () {
+		openFile(projectsDrop, episodeDrop, cutInput, takeInput);
+	};
+
+	var retimer = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '04.png'),
+		{ style: 'toolbutton' }
+	);
+	retimer.onClick = function () {
+		var retimerFile = File(scriptPath + '/retimer.jsx');
+		if (retimerFile.exists) {
+			$.evalFile(retimerFile);
+		} else {
+			alert('retimer.jsx not found!');
+		}
+	};
+
+	var timesheet = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '05.png'),
+		{ style: 'toolbutton' }
+	);
+
+	var location = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '06.png'),
+		{ style: 'toolbutton' }
+	);
+	location.onClick = openRootFolder;
+
+	var fileReplace = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '07.png'),
+		{ style: 'toolbutton' }
+	);
+
+	var removeUnused = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '08.png'),
+		{ style: 'toolbutton' }
+	);
+
+	var render = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '09.png'),
+		{ style: 'toolbutton' }
+	);
+	render.onClick = renderBG;
+
+	var secondRow = panel.add('group');
+	secondRow.orientation = 'row';
+	secondRow.spacing = 5;
+
+	var workerGroup = secondRow.add('group');
+	workerGroup.spacing = 0;
+	workerGroup.add('statictext', undefined, 'Worker');
+
+	var workerKey = 'workerName';
+	var defaultWorker = $.getenv('COMPUTERNAME') || 'Worker';
+	var savedWorker = app.settings.haveSetting(section, workerKey)
+		? app.settings.getSetting(section, workerKey)
+		: defaultWorker;
+
+	var workerInput = workerGroup.add('edittext', undefined, savedWorker);
+	workerInput.characters = 10;
+	workerInput.onChange = function () {
+		app.settings.saveSetting(section, workerKey, workerInput.text);
+		renameWorker(workerInput.text);
+	};
+
+	secondRow.add('panel', [100, 0, 103, 20]);
+
+	var takeGroup = secondRow.add('group');
+	takeGroup.spacing = 0;
+	var takeInput = takeGroup.add('edittext', undefined, '--');
+	takeInput.characters = 3;
+	var takeButton = takeGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + '02.png'),
+		{ style: 'toolbutton' }
+	);
+
+	secondRow.add('panel', [100, 0, 103, 20]);
+
+	var retakeInput = secondRow.add('edittext', undefined, 'Retake');
+	retakeInput.characters = 23;
+
+	panel.layout.layout(true);
+	panel.layout.resize();
+	panel.onResizing = panel.onResize = function () {
+		panel.layout.resize();
+	};
+
+	if (panel instanceof Window) {
+		panel.center();
+		panel.show();
+	}
+
+	// Fill dropdowns
+	var projects = getProjects();
+	projectsDrop.removeAll();
+	for (var i = 0; i < projects.length; i++) {
+		projectsDrop.add('item', projects[i].name);
+	}
+	projectsDrop.selection = Math.min(savedProject, projects.length - 1);
+
+	function updateEpisodes(projectsDrop, episodeDrop) {
+		episodeDrop.removeAll();
+		var episodes = getEpisodes(projectsDrop.selection.index);
+		for (var i = 0; i < episodes.length; i++) {
+			episodeDrop.add('item', episodes[i].name);
+		}
+		episodeDrop.selection = Math.min(
+			savedEpisode,
+			episodeDrop.items.length - 1
+		);
+		app.settings.saveSetting(
+			section,
+			keys.episode,
+			episodeDrop.selection.index.toString()
+		);
+	}
+
+	updateEpisodes(projectsDrop, episodeDrop);
+
+	projectsDrop.onChange = function () {
+		app.settings.saveSetting(
+			section,
+			keys.project,
+			projectsDrop.selection.index.toString()
+		);
+		updateEpisodes(projectsDrop, episodeDrop);
+	};
+
+	episodeDrop.onChange = function () {
+		app.settings.saveSetting(
+			section,
+			keys.episode,
+			episodeDrop.selection.index.toString()
+		);
+	};
+
+	cutInput.onChanging = function () {
+		app.settings.saveSetting(section, keys.cut, cutInput.text);
+	};
+
+	function extractTakeCode(filename) {
+		var regex = /(c\d+|g\d+|3d_t\d+|t\d+|v0|v\d+)$/i;
+		var match = filename.match(regex);
+		return match ? match[0].toLowerCase() : null;
+	}
+
+	if (app.project.file != null) {
+		var fileName = app.project.file.name;
+		var baseName = fileName.replace(/\.[^\.]+$/, '');
+		var takeCode = extractTakeCode(baseName);
+		if (takeCode) {
+			takeInput.text = takeCode;
+		} else {
+			takeInput.text = '--';
+		}
+	} else {
+		takeInput.text = '--';
+	}
+}
