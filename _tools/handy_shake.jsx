@@ -26,15 +26,15 @@ if (isValid(app.project.activeItem) == true) {
         addSlider(nullLayer, "Noise Amplitude", 5);
         addSlider(nullLayer, "Phase", 0);
 
-        nullLayer.property("position").expression = "intDPI=effect('Resolution (in DPI)')('スライダー') ;\n" +
-            "hiritu = effect('Scale in %')('スライダー') ;\n" +
+        nullLayer.property("position").expression = "intDPI=effect('Resolution (in DPI)')('ADBE Slider Control') ;\n" +
+            "hiritu = effect('Scale in %')('ADBE Slider Control') ;\n" +
             "if(intDPI==0){intDPI=Math.round(128*(hiritu/100) )}\n" +
             "mySpeed = intDPI/25.4;\n" +
-            "freq=effect('Frequency')('スライダー');\n" +
-            "amp=effect('Amplitude (in mm)')('スライダー');\n" +
-            "octaves =effect('Noise Frequency')('スライダー');\n" +
-            "amp_mult=effect('Noise Amplitude')('スライダー')/20;\n" +
-            "t=time+framesToTime(effect('Phase')('スライダー'),1/thisComp.frameDuration);\n" +
+            "freq=effect('Frequency')('ADBE Slider Control');\n" +
+            "amp=effect('Amplitude (in mm)')('ADBE Slider Control');\n" +
+            "octaves =effect('Noise Frequency')('ADBE Slider Control');\n" +
+            "amp_mult=effect('Noise Amplitude')('ADBE Slider Control')/20;\n" +
+            "t=time+framesToTime(effect('Phase')('ADBE Slider Control'),1/thisComp.frameDuration);\n" +
             "amp=amp*mySpeed ;\n" +
             "wiggle(freq, amp, octaves , amp_mult , t)"
 

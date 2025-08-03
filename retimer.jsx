@@ -43,7 +43,7 @@
         var framerateGroup = inputs.add('group')
         framerateGroup.alignChildren = 'right'
         framerateGroup.spacing = 4
-        framerateGroup.add('statictext', undefined, 'Duration')
+        framerateGroup.add('statictext', undefined, 'Framerate')
         var framerateInput = framerateGroup.add('edittext', undefined, '24')
         framerateInput.characters = 10
 
