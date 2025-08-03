@@ -41,7 +41,7 @@ var blendModeNames = [
 ];
 
 if (isValid(app.project.activeItem) == true) {
-	app.beginUndoGroup('Inner Shadow');
+	app.beginUndoGroup('Drop Shadow');
 
 	var curItem = app.project.activeItem;
 	var selectedLayers = curItem.selectedLayers;
@@ -49,23 +49,23 @@ if (isValid(app.project.activeItem) == true) {
 	for (var i = 0; i < selectedLayers.length; i++) {
 		var layer = selectedLayers[i];
 
-		app.executeCommand(9001); // Add layer styles
+		app.executeCommand(9000); // Add layer styles
 
 		addColorChange(layer, 'Color', [0, 0, 0]);
 		var blendDropdown = addDropdown(layer, 'Blend Mode', 1);
 		setDropdownItems(blendDropdown, blendModeNames);
-		addSlider(layer, 'Opacity', 100);
-		addAngle(layer, 'Angle', 120);
-		addSlider(layer, 'Distance', 0);
+		addSlider(layer, 'Opacity', 50);
+		addAngle(layer, 'Angle', -45);
+		addSlider(layer, 'Distance', 10);
 		addSlider(layer, 'Choke', 0);
-		addSlider(layer, 'Size', 5);
+		addSlider(layer, 'Size', 0);
 
 		// Use matchNames for expression referencing
-		var innerShadow = layer
+		var dropShadow = layer
 			.property('ADBE Layer Styles')
-			.property('innerShadow/enabled');
+			.property('dropShadow/enabled');
 
-		innerShadow.property('innerShadow/mode2').expression =
+		dropShadow.property('dropShadow/mode2').expression =
 			'var mode = effect("Dropdown Menu Control")("Menu");\n' +
 			'mode == 1 ? 1 :\n' +
 			'mode == 2 ? 5 :\n' +
@@ -74,17 +74,17 @@ if (isValid(app.project.activeItem) == true) {
 			'mode == 5 ? 17 :\n' +
 			'mode == 6 ? 18 :\n' +
 			'1;';
-		innerShadow.property('innerShadow/color').expression =
+		dropShadow.property('dropShadow/color').expression =
 			'effect("Color")("ADBE Color Control-0001")';
-		innerShadow.property('innerShadow/opacity').expression =
+		dropShadow.property('dropShadow/opacity').expression =
 			'effect("Opacity")("ADBE Slider Control-0001")';
-		innerShadow.property('innerShadow/localLightingAngle').expression =
+		dropShadow.property('dropShadow/localLightingAngle').expression =
 			'effect("Angle")("ADBE Angle Control-0001") - 180';
-		innerShadow.property('innerShadow/distance').expression =
+		dropShadow.property('dropShadow/distance').expression =
 			'effect("Distance")("ADBE Slider Control-0001")';
-		innerShadow.property('innerShadow/chokeMatte').expression =
+		dropShadow.property('dropShadow/chokeMatte').expression =
 			'effect("Choke")("ADBE Slider Control-0001")';
-		innerShadow.property('innerShadow/blur').expression =
+		dropShadow.property('dropShadow/blur').expression =
 			'effect("Size")("ADBE Slider Control-0001")';
 	}
 

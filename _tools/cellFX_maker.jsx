@@ -6,6 +6,7 @@ for (var i = 1; i <= app.project.numItems; i++) {
 }
 
 if (mySelectedItems.length) {
+	app.beginUndoGroup('Cell FX');
 	for (var i = 0; i < mySelectedItems.length; i++) {
 		var item = mySelectedItems[i];
 
@@ -28,9 +29,20 @@ if (mySelectedItems.length) {
 			cellComp.duration,
 			1 / cellComp.frameDuration
 		);
-		cellFXComp.layers.add(cellComp);
+		var cellFXLayer = cellFXComp.layers.add(cellComp);
 		cellFXComp.parentFolder = getFolder('cellFX');
+
+		var colorKeyEffect = cellFXLayer.Effects.addProperty('ADBE Color Key');
+		if (colorKeyEffect) {
+			colorKeyEffect.property(1).setValue([1, 1, 1]);
+		}
+
+		var antiAliasEffect = cellFXLayer.Effects.addProperty(
+			'PSOFT ANTI-ALIASING'
+		);
 	}
+
+	app.endUndoGroup();
 } else {
 	alert('セルを選択してください');
 }

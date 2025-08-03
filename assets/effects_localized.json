@@ -1,0 +1,992 @@
+{
+	"3D Channel Extract": "ADBE AUX CHANNEL",
+	"Extraction de couches": "ADBE AUX CHANNEL",
+	"3Dチャンネル抽出": "ADBE AUX CHANNEL",
+
+	"Depth Matte": "ADBE DEPTH MATTE",
+	"Cache de profondeur": "ADBE DEPTH MATTE",
+	"デプスマット": "ADBE DEPTH MATTE",
+
+	"Depth Of Field": "ADBE DEPTH FIELD",
+	"Profondeur de champ": "ADBE DEPTH FIELD",
+	"被写界深度": "ADBE DEPTH FIELD",
+
+	"EXtractoR": "EXtractoR",
+
+	"Fog 3D": "ADBE FOG_3D",
+	"Brouillard 3D": "ADBE FOG_3D",
+	"フォグ 3D": "ADBE FOG_3D",
+
+	"ID Matte": "ADBE ID MATTE",
+	"Cache d'ID": "ADBE ID MATTE",
+	"IDマット": "ADBE ID MATTE",
+
+	"IDentifier": "IDentifier",
+
+	"Backwards": "ADBE Aud Reverse",
+	"Arrière": "ADBE Aud Reverse",
+	"リバース": "ADBE Aud Reverse",
+
+	"Bass & Treble": "ADBE Aud BT",
+	"Basses/Aigus": "ADBE Aud BT",
+	"バス＆トレブル": "ADBE Aud BT",
+
+	"Delay": "ADBE Aud Delay",
+	"Retard": "ADBE Aud Delay",
+	"ディレイ": "ADBE Aud Delay",
+
+	"Flange & Chorus": "ADBE Aud_Flange",
+	"Modulation/Choeur": "ADBE Aud_Flange",
+	"フランジ＆コーラス": "ADBE Aud_Flange",
+
+	"High-Low Pass": "ADBE Aud HiLo",
+	"Passe-haut/Passe-bas": "ADBE Aud HiLo",
+	"ハイパス／ローパス": "ADBE Aud HiLo",
+
+	"Modulator": "ADBE Aud Modulator",
+	"Modulateur": "ADBE Aud Modulator",
+	"モジュレータ": "ADBE Aud Modulator",
+
+	"Parametric EQ": "ADBE Param EQ",
+	"Egalisationparamétrique": "ADBE Param EQ",
+	"パラメトリック EQ": "ADBE Param EQ",
+
+	"Reverb": "ADBE Aud Reverb",
+	"Réverbération": "ADBE Aud Reverb",
+	"リバーブ": "ADBE Aud Reverb",
+
+	"Stereo Mixer": "ADBE Aud Stereo Mixer",
+	"Mixeur stéréo": "ADBE Aud Stereo Mixer",
+	"ステレオミキサー": "ADBE Aud Stereo Mixer",
+
+	"Tone": "ADBE Aud Tone",
+	"Tonalité": "ADBE Aud Tone",
+	"トーン": "ADBE Aud Tone",
+
+	"Bilateral Blur": "ADBE Bilateral",
+	"Flou bilatéral": "ADBE Bilateral",
+	"ブラー（バイラテラル）": "ADBE Bilateral",
+
+	"Camera Lens Blur": "ADBE Lens Blur",
+	"Flou objectif appareilphoto": "ADBE Lens Blur",
+	"ブラー（カメラレンズ）": "ADBE Lens Blur",
+
+	"Camera shake Deblur": "ADBE Reduce InterlaceFlicker",
+	"Réduction floutremblements appareilphoto": "ADBE Reduce InterlaceFlicker",
+	"カメラぶれ除去": "ADBE Reduce InterlaceFlicker",
+
+	"CC Cross Blur": "CC Cross Blur",
+	"CC CrossBlur": "CC Cross Blur",
+	"CS CrossBlur": "CC Cross Blur",
+
+	"CC Radial Blur": "CC Radial Blur",
+	"CC ブラー（放射状）": "CC Radial Blur",
+
+	"CC Radial Fast Blur": "CC Radial Fast Blur",
+	"CC ブラー（滑らか）": "CC Radial Fast Blur",
+
+	"CC Vector Blur": "CC Vector Blur",
+	"Effet CC Vector Blur": "CC Vector Blur",
+	"CC VectorBlur": "CC Vector Blur",
+
+	"Channel Blur": "ADBE Channel Blur",
+	"Flou par couches": "ADBE Channel Blur",
+	"ブラー（チャンネル）": "ADBE Channel Blur",
+
+	"Compound Blur": "ADBE Compound Blur",
+	"Flou composite": "ADBE Compound Blur",
+	"ブラー（合成）": "ADBE Compound Blur",
+
+	"Directional Blur": "ADBE Motion Blur",
+	"Flou directionnel": "ADBE Motion Blur",
+	"ブラー（方向）": "ADBE Motion Blur",
+
+	"Fast Box Blur": "ADBE Fast Blur",
+	"Flou encadré accéléré": "ADBE Fast Blur",
+	"ブラー（滑らか）": "ADBE Fast Blur",
+
+	"Radial Blur": "ADBE Radial Blur",
+	"Flou radial": "ADBE Radial Blur",
+	"ブラー（放射状）": "ADBE Radial Blur",
+
+	"Sharpen": "ADBE Sharpen",
+	"Plus net": "ADBE Sharpen",
+	"シャープ": "ADBE Sharpen",
+
+	"Smart Blur": "ADBE Smart Blur",
+	"Flou optimisé": "ADBE Smart Blur",
+	"ブラー（詳細）": "ADBE Smart Blur",
+
+	"Unsharp Mask": "ADBE Unsharp Mask2",
+	"Accentuation": "ADBE Unsharp Mask2",
+	"アンシャープマスク": "ADBE Unsharp Mask2",
+
+	"Arithmetic": "ADBE Arithmetic",
+	"Opérations": "ADBE Arithmetic",
+	"アリスマチック": "ADBE Arithmetic",
+
+	"Blend": "ADBE Blend",
+	"Fusion": "ADBE Blend",
+	"ブレンド": "ADBE Blend",
+
+	"Calculations": "ADBE Calculations",
+	"Calculs": "ADBE Calculations",
+	"計算": "ADBE Calculations",
+
+	"CC Composite": "CC Composite",
+	"色調補正": "CC Composite",
+
+	"Channel Combiner": "ADBE ChannelCombiner",
+	"Mélangeur de couches": "ADBE ChannelCombiner",
+	"チャンネルコンバイナー": "ADBE ChannelCombiner",
+
+	"Compound Arithmetic": "ADBE CompoundArithmetic",
+	"Opérations complexes": "ADBE CompoundArithmetic",
+	"合成アリスマチック": "ADBE CompoundArithmetic",
+
+	"Invert": "ADBE Invert",
+	"Inverser": "ADBE Invert",
+	"反転": "ADBE Invert",
+
+	"Minimax": "ADBE Minimax",
+	"最大／最小": "ADBE Minimax",
+
+	"Remove Color Matting": "ADBE Remove ColorMatting",
+	"Suppression de halocoloré": "ADBE Remove ColorMatting",
+	"カラーマット削除": "ADBE Remove ColorMatting",
+
+	"Set Channels": "ADBE Set Channels",
+	"Correspondance descouches": "ADBE Set Channels",
+	"チャンネル設定": "ADBE Set Channels",
+
+	"Set Matte": "ADBE Set Matte2",
+	"Appliquer un cache": "ADBE Set Matte2",
+	"マット設定": "ADBE Set Matte2",
+
+	"Shift Channels": "ADBE Shift Channels",
+	"Décalage des couches": "ADBE Shift Channels",
+	"チャンネルシフト": "ADBE Shift Channels",
+
+	"Solid Composite": "ADBE Solid Composite",
+	"Composite uni": "ADBE Solid Composite",
+	"単色合成": "ADBE Solid Composite",
+
+	"Auto Color": "ADBE AutoColor",
+	"Couleur automatique": "ADBE AutoColor",
+	"自動カラー補正": "ADBE AutoColor",
+
+	"Auto Contrast": "ADBE AutoContrast",
+	"Contraste automatique": "ADBE AutoContrast",
+	"自動コントラスト": "ADBE AutoContrast",
+
+	"Auto Levels": "ADBE AutoLevels",
+	"Niveaux automatiques": "ADBE AutoLevels",
+	"自動レベル補正": "ADBE AutoLevels",
+
+	"Black & White": "ADBE Black&White",
+	"Noir & blanc": "ADBE Black&White",
+	"白黒": "ADBE Black&White",
+
+	"Brightness & Contrast": "ADBE Brightness &Contrast 2",
+	"Luminosité et contraste": "ADBE Brightness &Contrast 2",
+	"輝度＆コントラスト": "ADBE Brightness &Contrast 2",
+
+	"Broadcast Colors": "ADBE Broadcast Colors",
+	"Couleurs TV": "ADBE Broadcast Colors",
+	"ブロードキャストカラー": "ADBE Broadcast Colors",
+
+	"CC Color Neutralizer": "CC ColorNeutralizer",
+	"Neutraliseur de couleur CC": "CC ColorNeutralizer",
+	"CC カラー中和": "CC ColorNeutralizer",
+
+	"CC Color Offset": "CC Color Offset",
+	"Décalage de couleur CC": "CC Color Offset",
+	"CC カラーオフセット": "CC Color Offset",
+
+	"CC Kernel (CS6)": "CC Kernel",
+	"Noyau CC (CS6)": "CC Kernel",
+	"CC カーネル (CS6)": "CC Kernel",
+
+	"CC Toner": "CC Toner",
+	"Toner CC": "CC Toner",
+	"CC トナー": "CC Toner",
+
+	"Change Color": "ADBE Change Color",
+	"Correction colorimétrique": "ADBE Change Color",
+	"色を変更": "ADBE Change Color",
+
+	"Change To Color": "ADBE Change To Color",
+	"Métamorphose de couleurs": "ADBE Change To Color",
+	"他のカラーへ変更": "ADBE Change To Color",
+
+	"Color Balance": "ADBE Color Balance 2",
+	"Balance des couleurs": "ADBE Color Balance 2",
+	"カラーバランス": "ADBE Color Balance 2",
+
+	"Color Balance (HLS)": "ADBE Color Balance(HLS)",
+	"Balance des couleurs (TLS)": "ADBE Color Balance(HLS)",
+	"カラーバランス（HLS）": "ADBE Color Balance(HLS)",
+
+	"Color Link": "ADBE Color Link",
+	"Réplication chromatique": "ADBE Color Link",
+	"カラーリンク": "ADBE Color Link",
+
+	"Color Stabilizer": "ADBE Deflicker",
+	"Stabilisation de couleur": "ADBE Deflicker",
+	"カラースタビライザー": "ADBE Deflicker",
+
+	"Colorama": "APC Colorama",
+	"コロラマ": "APC Colorama",
+
+	"Equalize": "ADBE Equalize",
+	"Égaliser": "ADBE Equalize",
+	"平均化（イコライズ）": "ADBE Equalize",
+
+	"Exposure": "ADBE Exposure2",
+	"Exposition": "ADBE Exposure2",
+	"露出": "ADBE Exposure2",
+
+	"Gamma/Pedestal/Gain": "ADBEGamma/Pedestal/Gain2",
+	"Gamma/Plancher/Gain": "ADBEGamma/Pedestal/Gain2",
+	"ガンマ/ペデスタル/ゲイン": "ADBEGamma/Pedestal/Gain2",
+
+	"Hue/Saturation": "ADBE HUESATURATION",
+	"Teinte/Saturation": "ADBE HUESATURATION",
+	"色相/彩度": "ADBE HUESATURATION",
+
+	"Leave Color": "ADBE Leave Color",
+	"Filtre chromatique": "ADBE Leave Color",
+	"色抜き": "ADBE Leave Color",
+
+	"Levels (IndividualControls)": "ADBE Pro Levels2",
+	"Niveaux (options individuelles)": "ADBE Pro Levels2",
+	"レベル（個々の制御）": "ADBE Pro Levels2",
+
+	"Lumetri color": "ADBE Lumetri",
+	"Couleur Lumetri": "ADBE Lumetri",
+	"Lumetri カラー": "ADBE Lumetri",
+
+	"Photo Filter": "ADBE Photo Filter",
+	"レンズフィルター": "ADBE Photo Filter",
+	"Filtre Photo": "ADBE Photo Filter",
+
+	"PS Arbitrary Map": "ADBE PS Arbitrary Map",
+	"PS 不定マップ": "ADBE PS Arbitrary Map",
+	"Courbe Photoshop": "ADBE PS Arbitrary Map",
+
+	"Selective Color": "ADBE SelectiveColor",
+	"特定色域の選択": "ADBE SelectiveColor",
+	"Couleur de sélection": "ADBE SelectiveColor",
+
+	"Shadow/Highlight": "ADBE ShadowHighlight",
+	"シャドウ・ハイライト": "ADBE ShadowHighlight",
+	"Ombre/Ton clair": "ADBE ShadowHighlight",
+
+	"Tritone": "ADBE Tritone",
+	"トライトーン": "ADBE Tritone",
+	"Trichrome": "ADBE Tritone",
+
+	"Video Limiter": "ADBEDigitalVideoLimiter",
+	"ビデオリミッター": "ADBEDigitalVideoLimiter",
+	"Limiteur vidéo": "ADBEDigitalVideoLimiter",
+
+	"Bezier Warp": "ADBE BEZMESH",
+	"ベジェワープ": "ADBE BEZMESH",
+	"Warping Bézier": "ADBE BEZMESH",
+
+	"Bulge": "ADBE Bulge",
+	"バルジ": "ADBE Bulge",
+	"Renflement": "ADBE Bulge",
+
+	"CC Bend It": "CC Bender",
+
+	"CC Blobbylize": "CC Blobbylize",
+
+	"CC Flo Motion": "CC Flo Motion",
+
+	"CC Griddler": "CC Griddler",
+
+	"CC Lens": "CC Lens",
+
+	"CC Page Turn": "CC Page Turn",
+
+	"CC Power Pin": "CC Power Pin",
+
+	"CC Ripple Pulse": "CC Ripple Pulse",
+
+	"CC Slant": "CC Slant",
+
+	"CC Smear": "CC Smear",
+
+	"CC Split": "CC Split",
+
+	"CC Split 2": "CC Split 2",
+
+	"CC Tiler": "CC Tiler",
+
+	"Corner Pin": "ADBE Corner Pin",
+	"コーナーピン": "ADBE Corner Pin",
+	"Quatre coins": "ADBE Corner Pin",
+
+	"Detail-preserving Upscale": "ADBE Upscale",
+	"アップスケール（ディテールを保持）": "ADBE Upscale",
+	"Conservation des détails - Amélioration": "ADBE Upscale",
+
+	"Displacement Map": "ADBE DisplacementMap",
+	"Dispersion": "ADBE DisplacementMap",
+	"ディスプレイスメントマップ": "ADBE DisplacementMap",
+
+	"Liquify": "ADBE LIQUIFY",
+	"Fluidité": "ADBE LIQUIFY",
+	"ゆがみ": "ADBE LIQUIFY",
+
+	"Magnify": "ADBE Magnify",
+	"Loupe": "ADBE Magnify",
+	"ズーム": "ADBE Magnify",
+
+	"Mesh Warp": "ADBE MESH WARP",
+	"Warping avec maillage": "ADBE MESH WARP",
+	"メッシュワープ": "ADBE MESH WARP",
+
+	"Mirror": "ADBE Mirror",
+	"Miroir": "ADBE Mirror",
+	"ミラー": "ADBE Mirror",
+
+	"Offset": "ADBE Offset",
+	"Décalage": "ADBE Offset",
+	"オフセット": "ADBE Offset",
+
+	"Optics Compensation": "ADBE OpticsCompensation",
+	"Compensation optique": "ADBE OpticsCompensation",
+	"レンズ補正": "ADBE OpticsCompensation",
+
+	"Polar Coordinates": "ADBE Polar Coordinates",
+	"Coordonnées polaires": "ADBE Polar Coordinates",
+	"極座標": "ADBE Polar Coordinates",
+
+	"Reshape": "ADBE RESHAPE",
+	"Remodeler": "ADBE RESHAPE",
+	"リシェープ": "ADBE RESHAPE",
+
+	"Ripple": "ADBE Ripple",
+	"Ondulation": "ADBE Ripple",
+	"波紋": "ADBE Ripple",
+
+	"Rolling Shutter Repair": "ADBE Rolling Shutter",
+	"Réparation obturateur déroulant": "ADBE Rolling Shutter",
+	"ローリングシャッター修正": "ADBE Rolling Shutter",
+
+	"Smear": "ADBE SCHMEAR",
+	"Maculage": "ADBE SCHMEAR",
+	"にじみ": "ADBE SCHMEAR",
+
+	"Spherize": "ADBE Spherize",
+	"Sphérisation": "ADBE Spherize",
+	"球面": "ADBE Spherize",
+
+	"Transform": "ADBE Geometry2",
+	"Géométrie": "ADBE Geometry2",
+	"トランスフォーム": "ADBE Geometry2",
+
+	"Turbulent Displace": "ADBE TurbulentDisplace",
+	"Turbulences": "ADBE TurbulentDisplace",
+	"タービュレントディスプレイス": "ADBE TurbulentDisplace",
+
+	"Twirl": "ADBE Twirl",
+	"Tourbillon": "ADBE Twirl",
+	"回転": "ADBE Twirl",
+
+	"Warp": "ADBE WRPMESH",
+	"Déformation": "ADBE WRPMESH",
+	"ワープ": "ADBE WRPMESH",
+
+	"Warp Stabilizer VFX": "ADBESubspaceStabilizer",
+	"Stabilisation de déformation": "ADBESubspaceStabilizer",
+	"ワープスタビライザー": "ADBESubspaceStabilizer",
+
+	"Wave Warp": "ADBE Wave Warp",
+	"Onde progressive": "ADBE Wave Warp",
+	"波形ワープ": "ADBE Wave Warp",
+
+	"4-Color Gradient": "ADBE 4ColorGradient",
+	"Dégradé 4 couleurs": "ADBE 4ColorGradient",
+	"4 色グラデーション": "ADBE 4ColorGradient",
+
+	"Advanced Lightning": "ADBE Lightning 2",
+	"Eclairs élaborés": "ADBE Lightning 2",
+	"稲妻（高度）": "ADBE Lightning 2",
+
+	"Audio Spectrum": "ADBE AudSpect",
+	"Spectre audio": "ADBE AudSpect",
+	"オーディオスペクトラム": "ADBE AudSpect",
+
+	"Audio Waveform": "ADBE AudWave",
+	"Niveau audio": "ADBE AudWave",
+	"オーディオウェーブフォーム": "ADBE AudWave",
+
+	"Beam": "ADBE Laser",
+	"Faisceau": "ADBE Laser",
+	"レーザー": "ADBE Laser",
+
+	"CC Glue Gun": "CC Glue Gun",
+	"CC Light Burst 2.5": "CC Light Burst 2.5",
+	"CC Light Rays": "CC Light Rays",
+	"CC Light Sweep": "CC Light Sweep",
+	"CC Threads (CS6)": "CC Threads",
+
+	"Cell Pattern": "ADBE Cell Pattern",
+	"Motif cellule": "ADBE Cell Pattern",
+	"セルパターン": "ADBE Cell Pattern",
+
+	"Checkerboard": "ADBE Checkerboard",
+	"Damier": "ADBE Checkerboard",
+	"チェッカーボード": "ADBE Checkerboard",
+
+	"Circle": "ADBE Circle",
+	"Cercle": "ADBE Circle",
+	"円": "ADBE Circle",
+
+	"Ellipse": "ADBE ELLIPSE",
+	"楕円": "ADBE ELLIPSE",
+
+	"Eyedropper Fill": "ADBE Eyedropper Fill",
+	"Remplissage pipette": "ADBE Eyedropper Fill",
+	"スポイト塗り": "ADBE Eyedropper Fill",
+
+	"Fill": "ADBE Fill",
+	"Remplir": "ADBE Fill",
+	"塗り": "ADBE Fill",
+
+	"Fractal": "ADBE Fractal",
+	"Images fractales": "ADBE Fractal",
+	"フラクタル": "ADBE Fractal",
+
+	"Gradient Ramp": "ADBE Ramp",
+	"Gamme des dégradés": "ADBE Ramp",
+	"グラデーション": "ADBE Ramp",
+
+	"Grid": "ADBE Grid",
+	"Grille": "ADBE Grid",
+	"グリッド": "ADBE Grid",
+
+	"Lens Flare": "ADBE Lens Flare",
+	"Lumière parasite": "ADBE Lens Flare",
+	"レンズフレア": "ADBE Lens Flare",
+
+	"Paint Bucket": "ADBE Paint Bucket",
+	"Pot de peinture": "ADBE Paint Bucket",
+	"塗りつぶし": "ADBE Paint Bucket",
+
+	"Radio Waves": "APC Radio Waves",
+	"Ondes radio": "APC Radio Waves",
+	"電波": "APC Radio Waves",
+
+	"Scribble": "ADBE Scribble Fill",
+	"Griffonnage": "ADBE Scribble Fill",
+	"落書き": "ADBE Scribble Fill",
+
+	"Stroke": "ADBE Stroke",
+	"Trait": "ADBE Stroke",
+	"線": "ADBE Stroke",
+
+	"Vegas": "APC Vegas",
+	"ベガス": "APC Vegas",
+
+	"Write-on": "ADBE Write-on",
+	"Tracé dynamique": "ADBE Write-on",
+	"ブラシアニメーション": "ADBE Write-on",
+
+	"Advanced SpillSuppressor": "ADBE Spill Suppressor",
+	"Nettoyage de masqueavancé": "ADBE Spill Suppressor",
+	"高度なスピルサプレッション": "ADBE Spill Suppressor",
+
+	"CC Simple WireRemoval": "CC Simple WireRemoval",
+	"CC SimpleWire Removal": "CC Simple WireRemoval",
+
+	"Color Difference Key": "ADBE Color DifferenceKey",
+	"Masquage pardifférence de couleur": "ADBE Color DifferenceKey",
+	"カラー差キー": "ADBE Color DifferenceKey",
+
+	"Color Range": "ADBE Color Range",
+	"Plage de couleurs": "ADBE Color Range",
+	"色範囲": "ADBE Color Range",
+
+	"Difference Matte": "ADBE Difference Matte2",
+	"Masquage pardifférence": "ADBE Difference Matte2",
+	"異なるマット": "ADBE Difference Matte2",
+
+	"Extract": "ADBE Extract",
+	"Masquage parextraction": "ADBE Extract",
+	"抽出": "ADBE Extract",
+
+	"Inner/Outer Key": "ADBE ATG Extract",
+	"Masquageinterne/externe": "ADBE ATG Extract",
+	"インナー／アウターキー": "ADBE ATG Extract",
+
+	"Key Cleaner": "ADBE KeyCleaner",
+	"Nettoyeur de masque": "ADBE KeyCleaner",
+	"キークリーナー": "ADBE KeyCleaner",
+
+	"Keylight（1.2）": "Keylight 906",
+
+	"Linear Color Key": "ADBE Linear Color Key2",
+	"Masquage linéaire parcouleur": "ADBE Linear Color Key2",
+	"リニアカラーキー": "ADBE Linear Color Key2",
+
+	"Matte Choker": "ADBE Matte Choker",
+	"Dilaté-érodé répétitif": "ADBE Matte Choker",
+	"マットチョーク": "ADBE Matte Choker",
+
+	"mocha shape": "ISLMochaShapeImporter",
+
+	"Refine Hard Matte": "ADBE RefineRBMatte",
+	"Améliorer le cache net": "ADBE RefineRBMatte",
+	"ハードマットを調整": "ADBE RefineRBMatte",
+
+	"Refine Soft Matte": "ADBE RefineMatte2",
+	"Améliorer le cache flou": "ADBE RefineMatte2",
+	"ソフトマットを調整": "ADBE RefineMatte2",
+
+	"Simple Choker": "ADBE Simple Choker",
+	"Dilaté-érodé simple": "ADBE Simple Choker",
+	"チョーク": "ADBE Simple Choker",
+
+	"Add Grain": "VISINF Grain Implant",
+	"Ajout de grain": "VISINF Grain Implant",
+	"グレイン（追加）": "VISINF Grain Implant",
+
+	"Dust & Scratches": "ADBE Dust & Scratches",
+	"Poussière & rayures": "ADBE Dust & Scratches",
+	"ダスト＆スクラッチ": "ADBE Dust & Scratches",
+
+	"Fractal Noise": "ADBE Fractal Noise",
+	"Bruit fractal": "ADBE Fractal Noise",
+	"フラクタルノイズ": "ADBE Fractal Noise",
+
+	"Match Grain": "VISINF GrainDuplication",
+	"Correspondance dugrain": "VISINF GrainDuplication",
+	"グレイン（マッチ）": "VISINF GrainDuplication",
+
+	"Median": "ADBE PS Median",
+	"Médiane": "ADBE PS Median",
+	"ミディアン": "ADBE PS Median",
+
+	"Median（Legacy）": "ADBE Median",
+	"Médiane (héritée)": "ADBE Median",
+	"ミディアン（レガシー）": "ADBE Median",
+
+	"Noise": "ADBE Noise",
+	"Bruit": "ADBE Noise",
+	"ノイズ": "ADBE Noise",
+
+	"Noise Alpha": "ADBE Noise Alpha2",
+	"Bruit alpha": "ADBE Noise Alpha2",
+	"ノイズアルファ": "ADBE Noise Alpha2",
+
+	"Noise HLS": "ADBE Noise HLS2",
+	"Bruit TLS": "ADBE Noise HLS2",
+	"ノイズ HLS": "ADBE Noise HLS2",
+
+	"Noise HLS Auto": "ADBE Noise HLS Auto2",
+	"Bruit TLS Auto": "ADBE Noise HLS Auto2",
+	"ノイズ HLS オート": "ADBE Noise HLS Auto2",
+
+	"Remove Grain": "VISINF Grain Removal",
+	"Suppression de grain": "VISINF Grain Removal",
+	"グレイン（除去）": "VISINF Grain Removal",
+
+	"Turbulent Noise": "ADBE AIF Perlin Noise3D",
+	"Bruit de turbulence": "ADBE AIF Perlin Noise3D",
+	"タービュレントノイズ": "ADBE AIF Perlin Noise3D",
+
+	"Basic 3D": "ADBE Basic 3D",
+	"3D simple": "ADBE Basic 3D",
+	"基本 3D": "ADBE Basic 3D",
+
+	"Basic Text": "ADBE Basic Text2",
+	"Texte de base": "ADBE Basic Text2",
+	"基本テキスト": "ADBE Basic Text2",
+
+	"Color Key": "ADBE Color Key",
+	"Masquage par couleur": "ADBE Color Key",
+	"カラーキー": "ADBE Color Key",
+
+	"Lightning": "ADBE Lightning",
+	"Éclairs": "ADBE Lightning",
+	"稲妻": "ADBE Lightning",
+
+	"Luma Key": "ADBE Luma Key",
+	"Incrustation Luminance": "ADBE Luma Key",
+	"ルミナンスキー": "ADBE Luma Key",
+
+	"Path Text": "ADBE Path Text",
+	"Texte curviligne": "ADBE Path Text",
+	"パステキスト": "ADBE Path Text",
+
+	"Reduce InterlaceFlicker": "ADBE Reduce InterlaceFlicker",
+	"Correction descintillement": "ADBE Reduce InterlaceFlicker",
+	"インターレースのちらつき削減": "ADBE Reduce InterlaceFlicker",
+
+	"Spill Suppresser": "ADBE Spill Suppressor",
+	"Nettoyage de masque": "ADBE Spill Suppressor",
+	"スピルサプレッション": "ADBE Spill Suppressor",
+
+	"3D Camera Tracker": "ADBE 3D Tracker",
+	"Suivi de la caméra 3D": "ADBE 3D Tracker",
+	"3D CameraTracker": "ADBE 3D Tracker",
+
+	"3D Glasses": "ADBE 3D Glasses",
+	"Lunettes 3D": "ADBE 3D Glasses",
+	"3D メガネ": "ADBE 3D Glasses",
+
+	"Bevel Alpha": "ADBE Bevel Alpha",
+	"Biseau alpha": "ADBE Bevel Alpha",
+	"ベベルアルファ": "ADBE Bevel Alpha",
+
+	"Bevel Edges": "ADBE Bevel Edges",
+	"Contours biseautés": "ADBE Bevel Edges",
+	"べベルエッジ": "ADBE Bevel Edges",
+
+	"CC Cylinder": "CC Cylinder",
+	"CC Environment (CS6)": "CC Environment",
+	"CCEnvironment(CS6)": "CC Environment",
+	"CC Sphere": "CC Sphere",
+	"CC Spotlight": "CC Spotlight",
+
+	"Radial Shadow": "ADBE Radial Shadow",
+	"Ombre radiale": "ADBE Radial Shadow",
+	"放射状シャドウ": "ADBE Radial Shadow",
+
+	"Card Dance": "APC CardDanceCam",
+	"Danse de cartes": "APC CardDanceCam",
+	"カードダンス": "APC CardDanceCam",
+
+	"Caustics": "APC Caustics",
+	"Caustique": "APC Caustics",
+	"コースティック": "APC Caustics",
+
+	"CC Ball Action": "CC Ball Action",
+	"CC BallAction": "CC Ball Action",
+
+	"CC Bubbles": "CC Bubbles",
+	"CC Drizzle": "CC Drizzle",
+	"CC Hair": "CC Hair",
+	"CC Mr. Mercury": "CC Mr. Mercury",
+	"CC Mr.Mercury": "CC Mr. Mercury",
+	"CC Particle Systems II": "CC Particle Systems II",
+	"CC ParticleSystems II": "CC Particle Systems II",
+	"CC Particle World": "CC Particle World",
+	"CC ParticleWorld": "CC Particle World",
+
+	"CC Pixel Polly": "CC Pixel Polly",
+	"CC Rainfall (CS6)": "CC Rainfall",
+	"CC Rainfall(CS6)": "CC Rainfall",
+	"CSRainfall": "CC Rainfall",
+
+	"CC Scatterize": "CC Scatterize",
+	"CC Snowfall (CS6)": "CC Snowfall",
+	"CC Snowfall(CS6)": "CC Snowfall",
+	"CSSnowfall": "CC Snowfall",
+
+	"CC Star Burst": "CC Star Burst",
+
+	"Foam": "APC Foam",
+	"Ecume": "APC Foam",
+	"泡": "APC Foam",
+
+	"Particle Playground": "ADBE Playgnd",
+	"Laboratoire departicules": "ADBE Playgnd",
+	"パーティクルプレイグラウンド": "ADBE Playgnd",
+
+	"Shatter": "APC Shatter",
+	"Éclat": "APC Shatter",
+	"シャター": "APC Shatter",
+
+	"Wave World": "APC Wave World",
+	"Générateur de vagues": "APC Wave World",
+	"ウェーブワールド": "APC Wave World",
+
+	"Brush Strokes": "ADBE Brush Strokes",
+	"Animer peinture": "ADBE Brush Strokes",
+	"ブラシストローク": "ADBE Brush Strokes",
+
+	"Cartoon": "ADBE Cartoonify",
+	"Dessin animé": "ADBE Cartoonify",
+	"カートゥーン": "ADBE Cartoonify",
+
+	"CC Block Load": "CC Block Load",
+	"CC BlockLoad": "CC Block Load",
+
+	"CC Burn Film": "CC Burn Film",
+
+	"CC Glass": "CC Glass",
+
+	"CC Hextile": "CC Hextile",
+
+	"CC Kaleida": "CC Kaleida",
+
+	"CC Mr. Smoothie": "CC Mr. Smoothie",
+	"CC Mr.Smoothie": "CC Mr. Smoothie",
+
+	"CC Plastic": "CC Plastic",
+
+	"CC RepeTile": "CC RepeTile",
+
+	"CC Threshold": "CC Threshold",
+	"CC Threshold RGB": "CC Threshold RGB",
+	"CC ThresholdRGB": "CC Threshold RGB",
+
+	"CC Vignette": "CC Vignette",
+
+	"Color Emboss": "ADBE Color Emboss",
+	"Estampage couleur": "ADBE Color Emboss",
+	"カラーエンボス": "ADBE Color Emboss",
+
+	"Emboss": "ADBE Emboss",
+	"Estampage": "ADBE Emboss",
+	"エンボス": "ADBE Emboss",
+
+	"Find Edges": "ADBE Find Edges",
+	"Détection des contours": "ADBE Find Edges",
+	"輪郭検出": "ADBE Find Edges",
+
+	"Glow": "ADBE Glo2",
+	"Lueur": "ADBE Glo2",
+	"グロー": "ADBE Glo2",
+
+	"Mosaic": "ADBE Mosaic",
+	"Mosaïque": "ADBE Mosaic",
+	"モザイク": "ADBE Mosaic",
+
+	"Motion Tile": "ADBE Tile",
+	"Juxtapositiondirectionnelle": "ADBE Tile",
+	"モーションタイル": "ADBE Tile",
+
+	"Posterize": "ADBE Posterize",
+	"Postérisation": "ADBE Posterize",
+	"ポスタリゼーション": "ADBE Posterize",
+
+	"Roughen Edges": "ADBE Roughen Edges",
+	"Contours bruts": "ADBE Roughen Edges",
+	"ラフエッジ": "ADBE Roughen Edges",
+
+	"Scatter": "ADBE Scatter",
+	"拡散": "ADBE Scatter",
+
+	"Strobe Light": "ADBE Strobe",
+	"Stroboscope": "ADBE Strobe",
+	"ストロボ": "ADBE Strobe",
+
+	"Texturize": "ADBE Texturize",
+	"Placage de texture": "ADBE Texturize",
+	"テクスチャ": "ADBE Texturize",
+
+	"Threshold": "ADBE Threshold2",
+	"Seuil": "ADBE Threshold2",
+	"しきい値": "ADBE Threshold2",
+
+	"Numbers": "ADBE Numbers2",
+	"Nombres": "ADBE Numbers2",
+	"番号": "ADBE Numbers2",
+
+	"Timecode": "ADBE Timecode",
+	"Code temporel": "ADBE Timecode",
+	"タイムコード": "ADBE Timecode",
+
+	"CC Force Motion Blur": "CC Force Motion Blur",
+	"CC ForceMotion Blur": "CC Force Motion Blur",
+
+	"CC Wide Time": "CC Wide Time",
+	"CC WideTime": "CC Wide Time",
+
+	"Echo": "ADBE Echo",
+	"エコー": "ADBE Echo",
+
+	"Pixel Motion Blur": "ADBE OFMotionBlur",
+	"Flou de mouvement depixels": "ADBE OFMotionBlur",
+	"ピクセルモーションブラー": "ADBE OFMotionBlur",
+
+	"Posterize Time": "ADBE Posterize Time",
+	"Postérisationtemporelle": "ADBE Posterize Time",
+	"ポスタリゼーション時間": "ADBE Posterize Time",
+
+	"Time Difference": "ADBE Difference",
+	"Différence temporelle": "ADBE Difference",
+	"時間差": "ADBE Difference",
+
+	"Time Displacement": "ADBE TimeDisplacement",
+	"Balayage temporel": "ADBE TimeDisplacement",
+	"時間置き換え": "ADBE TimeDisplacement",
+
+	"Timewarp": "ADBE Timewarp",
+	"Déformation temporelle": "ADBE Timewarp",
+	"タイムワープ": "ADBE Timewarp",
+
+	"Block Dissolve": "ADBE Block Dissolve",
+	"Fondu par carreaux": "ADBE Block Dissolve",
+	"ブロックディゾルブ": "ADBE Block Dissolve",
+
+	"Card Wipe": "APC CardWipeCam",
+	"Volet carte": "APC CardWipeCam",
+	"カードワイプ": "APC CardWipeCam",
+
+	"CC Glass Wipe": "CC Glass Wipe",
+	"CC GlassWipe": "CC Glass Wipe",
+
+	"CC Grid Wipe": "CC Grid Wipe",
+
+	"CC Image Wipe": "CC Image Wipe",
+	"CC ImageWipe": "CC Image Wipe",
+
+	"CC Jaws": "CC Jaws",
+
+	"CC Light Wipe": "CC Light Wipe",
+	"CC LightWipe": "CC Light Wipe",
+
+	"CC Line Sweep": "CC Line Sweep",
+	"CC LineSweep": "CC Line Sweep",
+
+	"CC Radial ScaleWipe": "CC Radial ScaleWipe",
+	"CC RadialScaleWipe": "CC Radial ScaleWipe",
+
+	"CC Scale Wipe": "CC Scale Wipe",
+	"CC ScaleWipe": "CC Scale Wipe",
+
+	"CC Twister": "CC Twister",
+
+	"CC WarpoMatic": "CC WarpoMatic",
+	"CCWarpoMatic": "CC WarpoMatic",
+
+	"Gradient Wipe": "ADBE Gradient Wipe",
+	"Dégradé": "ADBE Gradient Wipe",
+	"グラデーションワイプ": "ADBE Gradient Wipe",
+
+	"Iris Wipe": "ADBE IRIS_WIPE",
+	"Volet en diaphragme enx": "ADBE IRIS_WIPE",
+	"アイリスワイプ": "ADBE IRIS_WIPE",
+
+	"Linear Wipe": "ADBE Linear Wipe",
+	"Volet linéaire": "ADBE Linear Wipe",
+	"リニアワイプ": "ADBE Linear Wipe",
+
+	"Radial Wipe": "ADBE Radial Wipe",
+	"Volet radial": "ADBE Radial Wipe",
+	"放射状ワイプ": "ADBE Radial Wipe",
+
+	"Venetian Blinds": "ADBE Venetian Blinds",
+	"Store vénitien": "ADBE Venetian Blinds",
+	"ブラインド": "ADBE Venetian Blinds",
+
+	"Apply Color LUT": "ADBE Apply Color LUT2",
+	"Appliquer table corr.couleurs": "ADBE Apply Color LUT2",
+	"カラー LUT を適用": "ADBE Apply Color LUT2",
+
+	"CC Overbrights": "CC Overbrights",
+	"CCOverbrights": "CC Overbrights",
+
+	"Cineon Converter": "ADBE CineonConverter2",
+	"Convertisseur Cineon": "ADBE CineonConverter2",
+	"Cineon コンバーター": "ADBE CineonConverter2",
+
+	"Color ProfileConverter": "ADBE ProfileToProfile",
+	"Convertisseur profilcouleurs": "ADBE ProfileToProfile",
+	"カラープロファイルコンバーター": "ADBE ProfileToProfile",
+
+	"Grow Bounds": "ADBE GROW BOUNDS",
+	"Limites de croissance": "ADBE GROW BOUNDS",
+	"範囲拡張": "ADBE GROW BOUNDS",
+
+	"HDR Compander": "ADBE Compander",
+	"Compresseur-extenseur HDR": "ADBE Compander",
+	"HDR コンパンダー": "ADBE Compander",
+
+	"HDR HighlightCompression": "ADBE HDR ToneMap",
+	"Compression des tonsclairs HDR": "ADBE HDR ToneMap",
+	"HDR ハイライト圧縮": "ADBE HDR ToneMap",
+
+	"Color Control": "ADBE Color Control",
+	"Couleur": "ADBE Color Control",
+	"カラー": "ADBE Color Control",
+	"Color": "ADBE Color Control-0001",
+	"Couleur intérieure": "ADBE Color Control-0001",
+	"色": "ADBE Color Control-0001",
+
+	"Slider Control": "ADBE Slider Control",
+	"Curseur": "ADBE Slider Control",
+	"スライダー": "ADBE Slider Control",
+	"Slider": "ADBE Slider Control-0001",
+	"Curseur principal": "ADBE Slider Control-0001",
+	"スライダー値": "ADBE Slider Control-0001",
+
+	"Angle Control": "ADBE Angle Control",
+	"Contrôle d'angle": "ADBE Angle Control",
+	"角度コントロール": "ADBE Angle Control",
+	"Angle": "ADBE Angle Control-0001",
+	"Angle de rotation": "ADBE Angle Control-0001",
+	"角度": "ADBE Angle Control-0001",
+
+	"Checkbox Control": "ADBE Checkbox Control",
+	"Case à cocher": "ADBE Checkbox Control",
+	"チェックボックス": "ADBE Checkbox Control",
+	"Checkbox": "ADBE Checkbox Control-0001",
+	"Case": "ADBE Checkbox Control-0001",
+	"チェック": "ADBE Checkbox Control-0001",
+
+	"Point Control": "ADBE Point Control",
+	"Point": "ADBE Point Control",
+	"ポイントコントロール": "ADBE Point Control",
+	"Position": "ADBE Point Control-0001",
+	"Emplacement": "ADBE Point Control-0001",
+	"位置": "ADBE Point Control-0001",
+
+	"Levels": "ADBE Easy Levels2",
+	"Niveaux": "ADBE Easy Levels2",
+	"レベル補正": "ADBE Easy Levels2",
+	"Input Black": "ADBE Levels3-0002",
+	"Entrée noire": "ADBE Levels3-0002",
+	"入力黒": "ADBE Levels3-0002",
+	"Input White": "ADBE Levels3-0003",
+	"Entrée blanche": "ADBE Levels3-0003",
+	"入力白": "ADBE Levels3-0003",
+	"Gamma": "ADBE Levels3-0004",
+	"ガンマ": "ADBE Levels3-0004",
+
+	"Curves": "ADBE CurvesCustom",
+	"Courbes": "ADBE CurvesCustom",
+	"トーンカーブ": "ADBE CurvesCustom",
+
+	"Tint": "ADBE Tint",
+	"Teinte": "ADBE Tint",
+	"ティント": "ADBE Tint",
+	"Map Black To": "ADBE Tint-0001",
+	"Noir vers": "ADBE Tint-0001",
+	"黒をマップ": "ADBE Tint-0001",
+	"Map White To": "ADBE Tint-0002",
+	"Blanc vers": "ADBE Tint-0002",
+	"白をマップ": "ADBE Tint-0002",
+
+	"Gaussian Blur": "ADBE Gaussian Blur 2",
+	"Flou gaussien": "ADBE Gaussian Blur 2",
+	"ガウスぼかし": "ADBE Gaussian Blur 2",
+	"Blurriness": "ADBE Gaussian Blur 2-0001",
+	"Flou": "ADBE Gaussian Blur 2-0001",
+	"ぼかし": "ADBE Gaussian Blur 2-0001",
+
+	"Drop Shadow": "ADBE Drop Shadow",
+	"Ombre portée": "ADBE Drop Shadow",
+	"ドロップシャドウ": "ADBE Drop Shadow",
+	"Opacity": "ADBE Drop Shadow-0001",
+	"Opacité": "ADBE Drop Shadow-0001",
+	"不透明度": "ADBE Drop Shadow-0001",
+	"Distance": "ADBE Drop Shadow-0002",
+	"距離": "ADBE Drop Shadow-0002",
+	"Softness": "ADBE Drop Shadow-0003",
+	"Contour progressif": "ADBE Drop Shadow-0003",
+	"ソフトネス": "ADBE Drop Shadow-0003",
+
+	"Vibrance": "ADBE Vibrance",
+	"ビブランス": "ADBE Vibrance",
+	"Amount": "ADBE Vibrance-0001",
+	"Quantité": "ADBE Vibrance-0001",
+	"量": "ADBE Vibrance-0001"
+}
