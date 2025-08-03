@@ -96,7 +96,7 @@ function buildUI(thisObj) {
 		{ style: 'toolbutton' }
 	);
 	retimer.onClick = function () {
-		var retimerFile = File(scriptPath + '/retimer.jsx');
+		var retimerFile = File(rootFolder + '/_project_box//logic/retimer.jsx');
 		if (retimerFile.exists) {
 			$.evalFile(retimerFile);
 		} else {
@@ -110,6 +110,46 @@ function buildUI(thisObj) {
 		File(iconsPath + '05.png'),
 		{ style: 'toolbutton' }
 	);
+	timesheet.onClick = function () {
+		var tmpDir = Folder('C:/tmp/adobe');
+		if (!tmpDir.exists) {
+			tmpDir.create();
+		}
+
+		// List your required EXE files here relative to your rootFolder
+		var exeFiles = [
+			'AE_RemapCall.exe',
+			'AE_RemapExceed.exe', // add any others you need
+		];
+
+		for (var i = 0; i < exeFiles.length; i++) {
+			var srcFile = File(rootFolder + '/_project_box/utils/' + exeFiles[i]);
+			var destFile = File(tmpDir.fsName + '/' + exeFiles[i]);
+
+			if (!destFile.exists) {
+				if (srcFile.exists) {
+					try {
+						srcFile.copy(destFile.fsName);
+					} catch (e) {
+						alert('Failed to copy ' + exeFiles[i] + ': ' + e.toString());
+						return;
+					}
+				} else {
+					alert('Source file not found: ' + srcFile.fsName);
+					return;
+				}
+			}
+		}
+
+		var timesheetFile = File(
+			rootFolder + '/_project_box/utils/AE_RemapExceed.jsx'
+		);
+		if (timesheetFile.exists) {
+			$.evalFile(timesheetFile);
+		} else {
+			alert('AE_RemapExceed.jsx not found!');
+		}
+	};
 
 	var location = buttonGroup.add(
 		'iconbutton',
