@@ -1,4 +1,3 @@
-// Main entry
 function importBG() {
 	if (!app.project.file) {
 		alert('Please save your project file first.');
@@ -50,13 +49,12 @@ function importBG() {
 
 	app.beginUndoGroup('Import BG');
 
-	importAssets(episodeFolder, baseName, cut);
+	importBGAssets(episodeFolder, baseName, cut);
 
 	app.endUndoGroup();
 }
 
-// Import logic
-function importAssets(folder, baseName, cut) {
+function importBGAssets(folder, baseName, cut) {
 	var files = folder.getFiles();
 	var foundPSD = null;
 	var foundEXR = null;

@@ -19,6 +19,9 @@
 		new File(scriptFolder.fsName + '/_project_box/logic/createCut.jsx')
 	);
 	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/importCells.jsx')
+	);
+	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/importBG.jsx')
 	);
 	$.evalFile(

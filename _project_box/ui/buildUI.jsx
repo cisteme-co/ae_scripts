@@ -81,12 +81,15 @@ function buildUI(thisObj) {
 		openFile(projectsDrop, episodeDrop, cutInput, takeInput);
 	};
 
-	var importCells = buttonGroup.add(
+	var importCellsBtn = buttonGroup.add(
 		'iconbutton',
 		undefined,
 		File(iconsPath + 'folder-down.png'),
 		{ style: 'toolbutton' }
 	);
+	importCellsBtn.onClick = function () {
+		importCells();
+	};
 
 	var importBGBtm = buttonGroup.add(
 		'iconbutton',
