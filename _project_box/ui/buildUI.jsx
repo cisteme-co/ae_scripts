@@ -1,6 +1,6 @@
 function buildUI(thisObj) {
 	var rootFolder = File($.fileName).parent.parent.path;
-	var iconsPath = rootFolder + '/assets/projectBox/';
+	var iconsPath = rootFolder + '/_project_box/assets/icons/';
 	var section = 'ProjectsBoxPrefs';
 
 	var keys = {
@@ -58,18 +58,6 @@ function buildUI(thisObj) {
 		File(iconsPath + 'file-plus-2.png'),
 		{ style: 'toolbutton' }
 	);
-	newCut.onClick = function () {
-		handleNewCut(
-			projectsDrop,
-			episodeDrop,
-			cutInput,
-			framerates,
-			takes,
-			takesCodes,
-			workerInput,
-			takeInput
-		);
-	};
 
 	var lastVersion = buttonGroup.add(
 		'iconbutton',
@@ -87,9 +75,6 @@ function buildUI(thisObj) {
 		File(iconsPath + 'folder-down.png'),
 		{ style: 'toolbutton' }
 	);
-	importCellsBtn.onClick = function () {
-		importCells();
-	};
 
 	var importBGBtm = buttonGroup.add(
 		'iconbutton',
@@ -97,9 +82,6 @@ function buildUI(thisObj) {
 		File(iconsPath + 'image-down.png'),
 		{ style: 'toolbutton' }
 	);
-	importBGBtm.onClick = function () {
-		importBG();
-	};
 
 	var timesheet = buttonGroup.add(
 		'iconbutton',
@@ -163,19 +145,25 @@ function buildUI(thisObj) {
 		}
 	};
 
-	var fileReplace = buttonGroup.add(
+	var fileReplaceBtn = buttonGroup.add(
 		'iconbutton',
 		undefined,
 		File(iconsPath + 'replace-all.png'),
 		{ style: 'toolbutton' }
 	);
+	fileReplaceBtn.onClick = function () {
+		fileReplace();
+	};
 
-	var removeUnused = buttonGroup.add(
+	var removeUnusedBtn = buttonGroup.add(
 		'iconbutton',
 		undefined,
 		File(iconsPath + 'trash-2.png'),
 		{ style: 'toolbutton' }
 	);
+	removeUnusedBtn.onClick = function () {
+		removeUnused();
+	};
 
 	var location = buttonGroup.add(
 		'iconbutton',
@@ -185,13 +173,12 @@ function buildUI(thisObj) {
 	);
 	location.onClick = openRootFolder;
 
-	var render = buttonGroup.add(
+	var renderBtn = buttonGroup.add(
 		'iconbutton',
 		undefined,
 		File(iconsPath + 'arrow-right-from-line.png'),
 		{ style: 'toolbutton' }
 	);
-	render.onClick = renderBG;
 
 	var secondRow = panel.add('group');
 	secondRow.orientation = 'row';
@@ -261,17 +248,41 @@ function buildUI(thisObj) {
 		retake(retakeInput.text);
 	};
 
+	importCellsBtn.onClick = function () {
+		importCells();
+	};
+	importBGBtm.onClick = function () {
+		importBG();
+	};
+	renderBtn.onClick = function () {
+		renderBG();
+	};
+
+	// Now that workerInput and takeInput exist:
+	newCut.onClick = function () {
+		handleNewCut(
+			projectsDrop,
+			episodeDrop,
+			cutInput,
+			framerates,
+			takes,
+			takesCodes,
+			workerInput,
+			takeInput
+		);
+	};
+
 	// Helptips
 	newCut.helpTip = TT('newCut');
 	lastVersion.helpTip = TT('lastVersion');
-	importCells.helpTip = TT('importCells');
+	importCellsBtn.helpTip = TT('importCells');
 	importBGBtm.helpTip = TT('importBG');
 	timesheet.helpTip = TT('timesheet');
 	retimer.helpTip = TT('retimer');
 	fileReplace.helpTip = TT('fileReplace');
 	removeUnused.helpTip = TT('removeUnused');
 	location.helpTip = TT('location');
-	render.helpTip = TT('render');
+	renderBtn.helpTip = TT('render');
 	takeInput.helpTip = TT('takeUp');
 	takeButton.helpTip = TT('takeUp');
 	workerInput.helpTip = TT('worker');

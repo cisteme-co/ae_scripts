@@ -16,6 +16,9 @@ function handleNewCut(
 	) {
 		selectedIndex = projectsDrop.selection.index;
 	}
+
+	var rootFolder = File($.fileName).parent.parent.path;
+	var iconsPath = rootFolder + '/_project_box/assets/icons/';
 	var projectFolder = decodeURI(getProjects()[selectedIndex]);
 	if (!projectFolder) {
 		alert('Could not retrieve the project path');
@@ -46,11 +49,44 @@ function handleNewCut(
 		: 1;
 
 	var win = new Window('dialog', 'New Cut');
-	win.preferredSize.width = 400;
+	win.margins = [0, 0, 0, 10]; // no margins
 
-	var masterGroup = win.add('group');
+	// Outer vertical group to hold all content, no margins or spacing
+	var outerGroup = win.add('group');
+	outerGroup.orientation = 'column';
+	outerGroup.alignChildren = ['fill', 'top'];
+	outerGroup.spacing = 5;
+	outerGroup.margins = [0, 0, 0, 0];
 
-	var selectGroup = masterGroup.add('group');
+	// Image group at top, centered, no margin
+	var imageGroup = outerGroup.add('group');
+	imageGroup.alignment = 'center';
+	imageGroup.margins = [0, 0, 0, 0];
+	imageGroup.spacing = 0;
+	imageGroup.alignChildren = ['center', 'center'];
+
+	// Add image here as before
+	var imageFile = File(projectFolder + '/assets/poster/poster.jpg');
+	if (!imageFile.exists) {
+		imageFile = File(
+			rootFolder + '/_project_box/assets/poster_placeholder.jpg'
+		);
+	}
+
+	var image;
+	if (imageFile.exists) {
+		try {
+			image = imageGroup.add('image', undefined, imageFile);
+			image.preferredSize = [480, 270]; // bounding box size, clipping possible
+		} catch (e) {
+			alert('Could not load image: ' + e.toString());
+		}
+	}
+
+	// Then the project/episode selects group
+	var selectGroup = outerGroup.add('group');
+	selectGroup.margins = [0, 5, 0, 5]; // small vertical margin between image and selects
+	selectGroup.alignment = 'center';
 	selectGroup.add('statictext', undefined, 'Project');
 	var projectDrop = selectGroup.add('dropdownlist', undefined, [
 		projectsDrop.selection.text,
@@ -64,18 +100,28 @@ function handleNewCut(
 	episode.selection = 0;
 	episode.enabled = false;
 
-	var maingroup = win.add('panel', undefined, 'Cut');
-	var buttonGroup = win.add('group');
+	// Panel for cut rows, with some margin to separate visually
+	var maingroup = outerGroup.add('panel', undefined, 'Cut');
+	maingroup.alignment = 'center';
+	maingroup.margins = [10, 10, 10, 10];
+
+	// Button group and params group go below panel, also inside outerGroup
+	var buttonGroup = outerGroup.add('group');
+	buttonGroup.alignment = 'center';
+	buttonGroup.margins = [0, 5, 0, 5];
+
 	var addButton = buttonGroup.add('button', undefined, '+');
 	addButton.onClick = function () {
 		add_btn(cutInput.text);
 	};
+
 	var removeButton = buttonGroup.add('button', undefined, '-');
 	removeButton.onClick = minus_btn;
 
-	var parametersGroup = win.add('group');
+	var parametersGroup = outerGroup.add('group');
+	parametersGroup.alignment = 'center';
+	parametersGroup.margins = [0, 5, 0, 5];
 	parametersGroup.add('statictext', undefined, 'Framerate');
-
 	var framerateDrop = parametersGroup.add(
 		'dropdownlist',
 		undefined,
@@ -94,7 +140,6 @@ function handleNewCut(
 	};
 
 	parametersGroup.add('statictext', undefined, 'Take');
-
 	var takesDrop = parametersGroup.add('dropdownlist', undefined, takes);
 	takesDrop.selection = Math.min(savedTakeIndex, takes.length - 1);
 	takesDrop.onChange = function () {
@@ -105,7 +150,9 @@ function handleNewCut(
 		);
 	};
 
-	var createButton = win.add('button', undefined, 'Create');
+	var createButton = outerGroup.add('button', undefined, 'Create');
+	createButton.alignment = 'center';
+	createButton.margins = [0, 10, 0, 10];
 	createButton.onClick = function () {
 		var cuts = [];
 		var seconds = [];

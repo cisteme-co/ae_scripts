@@ -60,7 +60,7 @@ function importCellAssets(folder, baseName, cut) {
 	var files = folder.getFiles();
 	var foundCell = null;
 
-	for (var i = 0; i < files.length; i++) {
+	for (var i = files.length - 1; i >= 0; i--) {
 		var f = files[i];
 		if (f instanceof Folder && f.name.toLowerCase().indexOf(baseName) !== -1) {
 			foundCell = f;

@@ -38,6 +38,12 @@
 		new File(scriptFolder.fsName + '/_project_box/logic/openRootFolder.jsx')
 	);
 	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/removeUnused.jsx')
+	);
+	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/fileReplace.jsx')
+	);
+	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/renderBG.jsx')
 	);
 
