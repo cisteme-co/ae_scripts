@@ -46,6 +46,9 @@
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/renderBG.jsx')
 	);
+	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/collectFiles.jsx')
+	);
 
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/ui/handleNewCut.jsx')

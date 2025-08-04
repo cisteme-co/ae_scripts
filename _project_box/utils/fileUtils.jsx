@@ -15,6 +15,23 @@ function readDropboxJSON(file) {
 	return false;
 }
 
+function copyFolderContents(srcFolder, destFolder) {
+	if (!destFolder.exists) destFolder.create();
+	var filesAndFolders = srcFolder.getFiles();
+	for (var i = 0; i < filesAndFolders.length; i++) {
+		var f = filesAndFolders[i];
+		if (f instanceof File) {
+			var targetFile = new File(destFolder.fsName + '/' + f.name);
+			if (!targetFile.exists) {
+				f.copy(targetFile);
+			}
+		} else if (f instanceof Folder) {
+			var newDestSubFolder = new Folder(destFolder.fsName + '/' + f.name);
+			copyFolderContents(f, newDestSubFolder);
+		}
+	}
+}
+
 // Utility: get file extension lowercase
 function getFileExtension(fileName) {
 	var match = fileName.match(/\.([^.]+)$/);

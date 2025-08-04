@@ -8,6 +8,16 @@ function replaceComp(replaceCompName, sourceComp, newComp) {
 	}
 }
 
+function getItemFolderPath(item) {
+	var pathParts = [];
+	var parent = item.parentFolder;
+	while (parent && parent !== app.project.rootFolder) {
+		pathParts.unshift(parent.name);
+		parent = parent.parentFolder;
+	}
+	return pathParts.join('/');
+}
+
 function getCurrentCompFrameRate() {
 	if (app.project.activeItem && app.project.activeItem instanceof CompItem) {
 		return app.project.activeItem.frameRate;

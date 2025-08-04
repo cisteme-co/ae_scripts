@@ -180,6 +180,16 @@ function buildUI(thisObj) {
 		{ style: 'toolbutton' }
 	);
 
+	var collectBtn = buttonGroup.add(
+		'iconbutton',
+		undefined,
+		File(iconsPath + 'combine.png'),
+		{ style: 'toolbutton' }
+	);
+	collectBtn.onClick = function () {
+		collectFiles();
+	};
+
 	var secondRow = panel.add('group');
 	secondRow.orientation = 'row';
 	secondRow.spacing = 5;
@@ -243,7 +253,7 @@ function buildUI(thisObj) {
 	secondRow.add('panel', [100, 0, 103, 20]);
 
 	var retakeInput = secondRow.add('edittext', undefined, T('retake'));
-	retakeInput.characters = 23;
+	retakeInput.characters = 28;
 	retakeInput.onChange = function () {
 		retake(retakeInput.text);
 	};
