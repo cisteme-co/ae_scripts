@@ -1,19 +1,26 @@
-function addSlider(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Slider Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
-}
+// ────────────────────────────────────────────────
+// ─────────────── Add Slider Helper ──────────────
+// ────────────────────────────────────────────────
+var rootFolder = File($.fileName).parent;
+$.evalFile(new File(rootFolder.fsName + '/utils/alerts.jsx'));
+$.evalFile(new File(rootFolder.fsName + '/utils/controls.jsx'));
 
-if (isValid(app.project.activeItem) == true) {
+// ────────────────────────────────────────────────
+// ─────────────── Main Execution ─────────────────
+// ────────────────────────────────────────────────
+if (typeof isValid === 'function' && isValid(app.project.activeItem)) {
 	app.beginUndoGroup('Handy Shake');
 
 	var curItem = app.project.activeItem;
 	var selectedLayers = curItem.selectedLayers;
 
-	for (i = 0; i < selectedLayers.length; i++) {
-		var layers = selectedLayers[i];
+	for (var i = 0; i < selectedLayers.length; i++) {
+		var layer = selectedLayers[i];
 		var nullLayer = curItem.layers.addNull(curItem.duration);
 
+		// ────────────────────────────────────────────
+		// ───────────── Localized Null Name ──────────
+		// ────────────────────────────────────────────
 		var nameMap = {
 			en_US: 'Handy Shake',
 			ja_JP: '手ブレ',
@@ -21,22 +28,29 @@ if (isValid(app.project.activeItem) == true) {
 		};
 
 		var aeLang = app.language || 'en_US';
-
 		var nullLayerName = nameMap[aeLang] || nameMap['en_US'];
-
 		nullLayer.source.name = nullLayerName;
 
-		nullLayer.moveBefore(layers);
-		layers.parent = nullLayer;
+		// ────────────────────────────────────────────
+		// ───────────── Setup Null Layer ─────────────
+		// ────────────────────────────────────────────
+		nullLayer.moveBefore(layer);
+		layer.parent = nullLayer;
 
-		addSlider(nullLayer, 'Resolution (in DPI)', 72);
-		addSlider(nullLayer, 'Scale in %', 100);
-		addSlider(nullLayer, 'Frequency', 1);
-		addSlider(nullLayer, 'Amplitude (in mm)', 5);
-		addSlider(nullLayer, 'Noise Frequency', 5);
-		addSlider(nullLayer, 'Noise Amplitude', 5);
-		addSlider(nullLayer, 'Phase', 0);
+		// ────────────────────────────────────────────
+		// ───────────── Add Slider Controls ──────────
+		// ────────────────────────────────────────────
+		Controls.addSlider(nullLayer, 'Resolution (in DPI)', 72);
+		Controls.addSlider(nullLayer, 'Scale in %', 100);
+		Controls.addSlider(nullLayer, 'Frequency', 1);
+		Controls.addSlider(nullLayer, 'Amplitude (in mm)', 5);
+		Controls.addSlider(nullLayer, 'Noise Frequency', 5);
+		Controls.addSlider(nullLayer, 'Noise Amplitude', 5);
+		Controls.addSlider(nullLayer, 'Phase', 0);
 
+		// ────────────────────────────────────────────
+		// ───────────── Position Expression ──────────
+		// ────────────────────────────────────────────
 		nullLayer.property('position').expression =
 			"intDPI=effect('Resolution (in DPI)')('ADBE Slider Control-0001') ;\n" +
 			"scale = effect('Scale in %')('ADBE Slider Control-0001') ;\n" +
@@ -53,5 +67,12 @@ if (isValid(app.project.activeItem) == true) {
 
 	app.endUndoGroup();
 } else {
-	alert('レイヤーを選択してください。');
+	// ────────────────────────────────────────────────
+	// ────────────── Alert No Layer Selected ─────────
+	// ────────────────────────────────────────────────
+	if (typeof Alerts !== 'undefined' && Alerts.alertNoLayerSelected) {
+		Alerts.alertNoLayerSelected();
+	} else {
+		alert('レイヤーを選択してください。'); // Fallback Japanese alert
+	}
 }

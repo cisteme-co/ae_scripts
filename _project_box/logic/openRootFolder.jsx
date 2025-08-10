@@ -1,17 +1,9 @@
+// ──────────────
+// Open project root folder
+// ──────────────
 function openRootFolder() {
-	if (app.project.file == null) {
-		var message;
-		switch ($.locale) {
-			case 'ja_JP':
-				message = 'プロジェクトを保存してください。';
-				break;
-			case 'fr_FR':
-				message = 'Veuillez enregistrer le projet.';
-				break;
-			default:
-				message = 'Please save the project first.';
-		}
-		alert(message);
+	if (!app.project.file) {
+		Alerts.alertSaveProjectFirst();
 	} else {
 		app.project.file.parent.execute();
 	}

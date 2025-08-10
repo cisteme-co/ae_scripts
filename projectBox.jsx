@@ -1,13 +1,21 @@
 (function (thisObj) {
+	// ────────────────────────────────────────────────
+	// Setup root and script folder paths
+	// ────────────────────────────────────────────────
 	var rootFolder = File($.fileName).parent;
-
 	var scriptFile = File($.fileName);
 	var scriptFolder = scriptFile.parent;
 
-	$.evalFile(new File(rootFolder.fsName + '/assets/json2.js'));
+	// ────────────────────────────────────────────────
+	// Load core dependency
+	// ────────────────────────────────────────────────
+	$.evalFile(new File(rootFolder.fsName + '/utils/json2.js'));
+	$.evalFile(new File(rootFolder.fsName + '/utils/alerts.jsx'));
 
-	$.evalFile(scriptFolder.fsName + '/_project_box/utils/_i18n.jsx');
-
+	// ────────────────────────────────────────────────
+	// Load utility scripts
+	// ────────────────────────────────────────────────
+	$.evalFile(new File(scriptFolder.fsName + '/_project_box/utils/_i18n.jsx'));
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/utils/fileUtils.jsx')
 	);
@@ -15,6 +23,9 @@
 		new File(scriptFolder.fsName + '/_project_box/utils/compUtils.jsx')
 	);
 
+	// ────────────────────────────────────────────────
+	// Load logic scripts
+	// ────────────────────────────────────────────────
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/createCut.jsx')
 	);
@@ -49,11 +60,20 @@
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/logic/collectFiles.jsx')
 	);
+	$.evalFile(
+		new File(scriptFolder.fsName + '/_project_box/logic/timesheetLogic.jsx')
+	);
 
+	// ────────────────────────────────────────────────
+	// Load UI scripts
+	// ────────────────────────────────────────────────
 	$.evalFile(
 		new File(scriptFolder.fsName + '/_project_box/ui/handleNewCut.jsx')
 	);
-	$.evalFile(new File(scriptFolder.fsName + '/_project_box/ui/buildUI.jsx'));
+	$.evalFile(new File(scriptFolder.fsName + '/_project_box/ui/mainUI.jsx'));
 
+	// ────────────────────────────────────────────────
+	// Launch UI
+	// ────────────────────────────────────────────────
 	buildUI(thisObj);
 })(this);

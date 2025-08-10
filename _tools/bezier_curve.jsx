@@ -1,56 +1,70 @@
+// ────────────────────────────────────────────────
+// Key Curve Control Expression Setup Script
+// ────────────────────────────────────────────────
+
+$.evalFile(new File(File($.fileName).parent.fsName + '/utils/alerts.jsx'));
+
 app.beginUndoGroup('key curve control');
 
-var ACT = app.project.activeItem;
-var SEL = ACT.selectedLayers[0];
+var comp = app.project.activeItem;
 
-var Pos = SEL.property('ADBE Transform Group').property('ADBE Position');
-
-var Orient = SEL.property('ADBE Transform Group').property('ADBE Orientation');
-
-var RoX = SEL.property('ADBE Transform Group').property('ADBE Rotate X');
-var RoY = SEL.property('ADBE Transform Group').property('ADBE Rotate Y');
-var RoZ = SEL.property('ADBE Transform Group').property('ADBE Rotate Z');
-
-var Sc = SEL.property('ADBE Transform Group').property('ADBE Scale');
-
-var exp01 =
-	't=effect("key curve control")(1);\r' +
-	'//キーフレームの値をスライダーに集約\r' +
-	'tx=linear(t, 0, 100, thisProperty.key(1).time, thisProperty.key(';
-
-var exp02 = ').time); \r' + 'valueAtTime(tx)';
-
-var SL = SEL.property('ADBE Effect Parade').addProperty('ADBE Slider Control');
-SL.name = 'key curve control';
-
-if (ACT) {
-	if (SEL) {
-		//positionの確認
-		//3Dレイヤーの判定は必要か？
-		//次元の分割は非対応
-		if (Pos.numKeys > 1) {
-			Pos.expression = exp01 + Pos.numKeys + exp02;
-		}
-		//回転の確認
-		if (RoZ.numKeys > 1) {
-			RoZ.expression = exp01 + RoZ.numKeys + exp02;
-		}
-		if (RoX.numKeys > 1) {
-			RoX.expression = exp01 + RoX.numKeys + exp02;
-		}
-		if (RoY.numKeys > 1) {
-			RoY.expression = exp01 + RoY.numKeys + exp02;
-		}
-		if (Orient.numKeys > 1) {
-			Orient.expression = exp01 + Orient.numKeys + exp02;
-		}
-		//スケールの確認
-		if (Sc.numKeys > 1) {
-			Sc.expression = exp01 + Sc.numKeys + exp02;
-		}
+if (!comp || !(comp instanceof CompItem)) {
+	if (typeof Alerts !== 'undefined' && Alerts.alertNoCompSelected) {
+		Alerts.alertNoCompSelected();
 	} else {
-		alert('Please selected layer');
+		alert('Please open or select a composition.');
+	}
+	app.endUndoGroup();
+	return;
+}
+
+var selectedLayers = comp.selectedLayers;
+
+if (selectedLayers.length === 0) {
+	if (typeof Alerts !== 'undefined' && Alerts.alertNoLayerSelected) {
+		Alerts.alertNoLayerSelected();
+	} else {
+		alert('Please select at least one layer.');
+	}
+	app.endUndoGroup();
+	return;
+}
+
+var layer = selectedLayers[0];
+
+// Properties to set expression on
+var Pos = layer.property('ADBE Transform Group').property('ADBE Position');
+var Orient = layer
+	.property('ADBE Transform Group')
+	.property('ADBE Orientation');
+var RoX = layer.property('ADBE Transform Group').property('ADBE Rotate X');
+var RoY = layer.property('ADBE Transform Group').property('ADBE Rotate Y');
+var RoZ = layer.property('ADBE Transform Group').property('ADBE Rotate Z');
+var Sc = layer.property('ADBE Transform Group').property('ADBE Scale');
+
+var expStart =
+	't=effect("key curve control")(1);\r' +
+	'// Aggregate keyframe values to the slider control\r' +
+	'tx=linear(t, 0, 100, thisProperty.key(1).time, thisProperty.key(';
+var expEnd = ').time); \rvalueAtTime(tx)';
+
+var slider = layer
+	.property('ADBE Effect Parade')
+	.addProperty('ADBE Slider Control');
+slider.name = 'key curve control';
+
+// Apply expression if property has more than 1 keyframe
+function applyExpression(prop) {
+	if (prop && prop.numKeys > 1) {
+		prop.expression = expStart + prop.numKeys + expEnd;
 	}
 }
+
+applyExpression(Pos);
+applyExpression(RoZ);
+applyExpression(RoX);
+applyExpression(RoY);
+applyExpression(Orient);
+applyExpression(Sc);
 
 app.endUndoGroup();

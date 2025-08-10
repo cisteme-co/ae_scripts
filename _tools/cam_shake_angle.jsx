@@ -1,66 +1,84 @@
-function addSlider(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Slider Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
+// ────────────────────────────────────────────────
+// Camera Shake Setup Script
+// Adds a null parent layer with shaking controls and expression
+// ────────────────────────────────────────────────
+
+var rootFolder = File($.fileName).parent;
+$.evalFile(new File(rootFolder.fsName + '/utils/alerts.jsx'));
+$.evalFile(new File(rootFolder.fsName + '/utils/controls.jsx'));
+
+// Alert fallback for no layer selected, localized
+function alertNoLayerSelected() {
+	if (typeof Alerts !== 'undefined' && Alerts.alertNoLayerSelected) {
+		Alerts.alertNoLayerSelected();
+	} else {
+		var langCode = app.language.toString().substr(0, 2);
+		var messages = {
+			en: 'Please select at least one layer.',
+			ja: 'レイヤーを選択してください。',
+			fr: 'Veuillez sélectionner au moins un calque.',
+			de: 'Bitte wählen Sie mindestens eine Ebene aus.',
+		};
+		alert(messages[langCode] || messages.en);
+	}
 }
 
-function addCheckbox(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Checkbox Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
-}
-
-function addAngle(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Angle Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
-}
-
-if (isValid(app.project.activeItem) == true) {
+// Check if active item is valid composition and has layers selected
+if (isValid(app.project.activeItem) === true) {
 	app.beginUndoGroup('Cam Shake');
 
-	var curItem = app.project.activeItem;
-	var selectedLayers = curItem.selectedLayers;
+	var comp = app.project.activeItem;
+	var selectedLayers = comp.selectedLayers;
 
-	for (var i = 0; i < selectedLayers.length; i++) {
-		var layers = selectedLayers[i];
-		var nullLayer = curItem.layers.addNull(curItem.duration);
-		nullLayer.moveBefore(layers);
-		layers.parent = nullLayer;
+	if (selectedLayers.length === 0) {
+		alertNoLayerSelected();
+		app.endUndoGroup();
+	} else {
+		for (var i = 0; i < selectedLayers.length; i++) {
+			var layer = selectedLayers[i];
 
-		var nameByLang = {
-			en: 'Camera Shake - Angle',
-			ja: '画面動 - 角度',
-			fr: 'Secousse Caméra - Angle',
-			de: 'Kamera-Wackeln - Winkel',
-		};
+			// Create null layer parent for camera shake
+			var nullLayer = comp.layers.addNull(comp.duration);
+			nullLayer.moveBefore(layer);
+			layer.parent = nullLayer;
 
-		var langCode = app.language.toString().substr(0, 2); // e.g., "en", "ja"
-		nullLayer.source.name = nameByLang[langCode] || nameByLang['en'];
+			// Localized names for the nullLayer source
+			var nameByLang = {
+				en: 'Camera Shake - Angle',
+				ja: '画面動 - 角度',
+				fr: 'Secousse Caméra - Angle',
+				de: 'Kamera-Wackeln - Winkel',
+			};
+			var langCode = app.language.toString().substr(0, 2);
+			nullLayer.source.name = nameByLang[langCode] || nameByLang.en;
 
-		addSlider(nullLayer, 'Resolution (dpi)', 144);
-		addSlider(nullLayer, 'Shaking (mm)', 0);
-		addAngle(nullLayer, 'Angle', 0);
-		addSlider(nullLayer, 'Random %', 50);
-		addCheckbox(nullLayer, 'Invert Shaking', false);
+			// Add control effects to null layer
+			Controls.addSlider(nullLayer, 'Resolution (dpi)', 144);
+			Controls.addSlider(nullLayer, 'Shaking (mm)', 0);
+			Controls.addAngle(nullLayer, 'Angle', 0);
+			Controls.addSlider(nullLayer, 'Random %', 50);
+			Controls.addCheckbox(nullLayer, 'Invert Shaking', false);
 
-		nullLayer.property('position').expression =
-			'a = effect("Shaking (mm)")("ADBE Slider Control-0001");\n' +
-			'r = effect("Angle")("ADBE Angle Control-0001") - 90;\n' +
-			'intDPI = effect("Resolution (dpi)")("ADBE Slider Control-0001");\n' +
-			'mySpeed = intDPI / 25.4;\n' +
-			'RandomSlider = clamp(effect("Random %")("ADBE Slider Control-0001"), 0, 100);\n' +
-			'myRandom = (100 - RandomSlider) / 100;\n' +
-			'myInverse = (effect("Invert Shaking")("ADBE Checkbox Control-0001") * 2 - 1) / 2 + myRandom / 400;\n' +
-			'T = timeToFrames(time, 1 / thisComp.frameDuration);\n' +
-			'X = position[0];\n' +
-			'Y = position[1];\n' +
-			'x = X + Math.cos(r * Math.PI / 180) * Math.pow(-1, T) * a * random(myRandom, 1) * mySpeed * myInverse;\n' +
-			'y = Y + Math.sin(r * Math.PI / 180) * Math.pow(-1, T) * a * random(myRandom, 1) * mySpeed * myInverse;\n' +
-			'[x, y];';
+			// Set expression for shaking position on the null layer
+			nullLayer.property('Position').expression =
+				'// Camera Shake Expression\n' +
+				'a = effect("Shaking (mm)")("ADBE Slider Control-0001");\n' +
+				'r = effect("Angle")("ADBE Angle Control-0001") - 90;\n' +
+				'intDPI = effect("Resolution (dpi)")("ADBE Slider Control-0001");\n' +
+				'mySpeed = intDPI / 25.4;\n' +
+				'RandomSlider = clamp(effect("Random %")("ADBE Slider Control-0001"), 0, 100);\n' +
+				'myRandom = (100 - RandomSlider) / 100;\n' +
+				'myInverse = (effect("Invert Shaking")("ADBE Checkbox Control-0001") * 2 - 1) / 2 + myRandom / 400;\n' +
+				'T = timeToFrames(time, 1 / thisComp.frameDuration);\n' +
+				'X = position[0];\n' +
+				'Y = position[1];\n' +
+				'x = X + Math.cos(r * Math.PI / 180) * Math.pow(-1, T) * a * random(myRandom, 1) * mySpeed * myInverse;\n' +
+				'y = Y + Math.sin(r * Math.PI / 180) * Math.pow(-1, T) * a * random(myRandom, 1) * mySpeed * myInverse;\n' +
+				'[x, y];';
+		}
+
+		app.endUndoGroup();
 	}
-
-	app.endUndoGroup();
 } else {
-	alert('レイヤーを選択してください。');
+	Alerts.alertNoCompSelected();
 }

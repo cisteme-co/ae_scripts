@@ -1,4 +1,18 @@
+/*
+────────────────────────────────────────────
+ Smart Expression Effect Name Translator
+────────────────────────────────────────────
+ This script:
+  1. Loads localized effect names from JSON.
+  2. Updates expressions in all comps/layers to use correct matchNames.
+  3. Handles language-specific property names (e.g. Dropdown "Menu").
+────────────────────────────────────────────
+*/
+
 (function smartExpressionEffectNameTranslator() {
+	// ─────────────────────────────────────────────
+	// Load and build map of all effect names
+	// ─────────────────────────────────────────────
 	function buildAllEffectNameMap() {
 		var map = {};
 
@@ -6,57 +20,70 @@
 		var scriptFile = File($.fileName);
 		var scriptFolder = scriptFile.parent;
 
-		// Load effects_localized.json from the same folder
+		// JSON path
 		var jsonFile = new File(
-			scriptFolder.fsName + '/assets/effects_localized.json'
+			scriptFolder.fsName + '/utils/effects_localized.json'
 		);
 		if (!jsonFile.exists) {
-			alert('Missing effects_localized.json');
+			alert(
+				'⚠ Missing effects_localized.json\nNo translation will be performed.'
+			);
 			return map;
 		}
 
-		if (jsonFile.open('r')) {
-			try {
-				var raw = jsonFile.read();
-				map = eval('(' + raw + ')'); // ExtendScript has no native JSON.parse
-				jsonFile.close();
-			} catch (err) {
-				alert('Failed to parse JSON: ' + err.toString());
-				jsonFile.close();
-			}
-		} else {
-			alert('Could not open JSON file.');
+		if (!jsonFile.open('r')) {
+			alert('⚠ Could not open effects_localized.json');
+			return map;
 		}
 
-		return map;
+		try {
+			var raw = jsonFile.read();
+			map = eval('(' + raw + ')'); // ExtendScript fallback for JSON.parse
+		} catch (err) {
+			alert('⚠ Failed to parse JSON:\n' + err.toString());
+		} finally {
+			jsonFile.close();
+		}
+
+		return map || {};
 	}
 
+	// ─────────────────────────────────────────────
+	// Utility: Escape regex special characters
+	// ─────────────────────────────────────────────
 	function escapeRegExp(str) {
 		return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	}
 
+	// ─────────────────────────────────────────────
+	// Replace effect and property names inside expression text
+	// ─────────────────────────────────────────────
 	function replaceNamesInExpression(expr, nameMap) {
-		// Replace effect names first
+		if (!expr || !nameMap) return expr;
+
+		// 1. Replace effect names
 		for (var key in nameMap) {
-			var matchName = nameMap[key];
-			// Replace `"name"` or 'name' with correct matchname
+			if (!nameMap.hasOwnProperty(key)) continue;
+			var matchName = nameMap[key] || key; // fallback to original if missing
+
 			var doubleQuoted = new RegExp('"' + escapeRegExp(key) + '"', 'g');
 			var singleQuoted = new RegExp("'" + escapeRegExp(key) + "'", 'g');
+
 			expr = expr.replace(doubleQuoted, '"' + matchName + '"');
-			expr = expr.replace(singleQuoted, '"' + matchName + '"'); // unify to double quotes
+			expr = expr.replace(singleQuoted, '"' + matchName + '"');
 		}
 
-		// Now handle Dropdown Menu Control's "Menu" property localization
+		// 2. Replace localized Dropdown Menu "Menu" property
 		var menuPropNameMap = {
 			en_US: 'Menu',
 			fr_FR: 'Menu',
 			ja_JP: 'メニュー',
-			// Add other languages if needed
+			// Add more if needed
 		};
-		var lang = app.language;
-		var localizedMenu = menuPropNameMap[lang];
+		var lang = app.language || 'en_US';
+		var localizedMenu = menuPropNameMap[lang] || menuPropNameMap['en_US'];
 
-		// Replace ("Menu") or ('Menu') with localizedMenu inside parentheses
+		// Matches ("Menu") or ('Menu') exactly
 		var menuPattern = /(\(["'])Menu(['"]\))/g;
 		expr = expr.replace(menuPattern, function (match, p1, p2) {
 			return p1 + localizedMenu + p2;
@@ -65,6 +92,9 @@
 		return expr;
 	}
 
+	// ─────────────────────────────────────────────
+	// Recursively process a property and its subproperties
+	// ─────────────────────────────────────────────
 	function processProperty(prop, nameMap) {
 		if (prop.canSetExpression && prop.expressionEnabled) {
 			try {
@@ -75,7 +105,7 @@
 					$.writeln('✔ Updated: ' + prop.name);
 				}
 			} catch (e) {
-				$.writeln('✖ Error: ' + e.toString());
+				$.writeln('✖ Error updating ' + prop.name + ': ' + e.toString());
 			}
 		}
 
@@ -86,25 +116,31 @@
 		}
 	}
 
+	// ─────────────────────────────────────────────
+	// Process an entire comp
+	// ─────────────────────────────────────────────
 	function processComp(comp, nameMap) {
 		for (var i = 1; i <= comp.numLayers; i++) {
-			var layer = comp.layer(i);
-			processProperty(layer, nameMap);
+			processProperty(comp.layer(i), nameMap);
 		}
 	}
 
-	// Run
+	// ─────────────────────────────────────────────
+	// Main execution
+	// ─────────────────────────────────────────────
 	app.beginUndoGroup('Smart Expression Translation');
 
 	var nameMap = buildAllEffectNameMap();
-
 	var proj = app.project;
+
 	if (proj && proj.numItems > 0) {
 		for (var i = 1; i <= proj.numItems; i++) {
 			if (proj.item(i) instanceof CompItem) {
 				processComp(proj.item(i), nameMap);
 			}
 		}
+	} else {
+		alert('⚠ No project or comps found.');
 	}
 
 	app.endUndoGroup();

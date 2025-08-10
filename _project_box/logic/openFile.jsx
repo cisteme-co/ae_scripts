@@ -1,17 +1,23 @@
 function openFile(projects, episodes, cutInput, takeInput) {
+	// ───────────────────────────────────────────────
+	// 0. INITIAL SETUP & VALIDATION
+	// ───────────────────────────────────────────────
 	var projectFolder = getProjects()[projects.selection.index];
 	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
 	var production = projectWorkFolder + '/production/compositing/';
 	var episode = episodes.selection.text;
-	var cuts = production + '/' + episode + '/cuts/';
+	var cutsPath = production + '/' + episode + '/cuts/';
 	var cut = cutInput.text;
 
-	var cutsFolder = new Folder(cuts);
+	var cutsFolder = new Folder(cutsPath);
 	if (!cutsFolder.exists) {
-		alert('Cuts folder does not exist: ' + cuts);
+		Alerts.alertCutsFolderMissing(cutsPath);
 		return;
 	}
 
+	// ───────────────────────────────────────────────
+	// 1. FIND MATCHING CUT FOLDERS
+	// ───────────────────────────────────────────────
 	var cutsFolders = cutsFolder.getFiles(function (f) {
 		return f instanceof Folder;
 	});
@@ -29,15 +35,18 @@ function openFile(projects, episodes, cutInput, takeInput) {
 	}
 
 	if (matchingFolders.length === 0) {
-		alert('No folder found for cut ' + cut);
+		Alerts.alertNoCutFolderFound(cut);
 		return;
 	}
 
+	// ───────────────────────────────────────────────
+	// 2. HANDLE MULTIPLE MATCHING FOLDERS (USER SELECTION)
+	// ───────────────────────────────────────────────
 	var selectedFolder;
 	if (matchingFolders.length === 1) {
 		selectedFolder = matchingFolders[0];
 	} else {
-		// Let user choose from multiple folders
+		// Build selection dialog
 		var dialog = new Window('dialog', 'Select Cut Folder');
 		dialog.orientation = 'column';
 		dialog.alignChildren = ['fill', 'top'];
@@ -66,24 +75,26 @@ function openFile(projects, episodes, cutInput, takeInput) {
 		dialog.show();
 
 		if (!selectedFolder) {
-			return; // user canceled
+			// User cancelled selection
+			return;
 		}
 	}
 
-	// Now open file based on latest take version
+	// ───────────────────────────────────────────────
+	// 3. FIND AEP FILES AND PICK BEST TAKE
+	// ───────────────────────────────────────────────
 	var cutFiles = selectedFolder.getFiles(function (f) {
 		return f instanceof File && f.name.match(/\.aepx?$/i);
 	});
 
 	if (cutFiles.length === 0) {
-		alert('No AEP files found in folder: ' + selectedFolder.name);
+		Alerts.alertNoAEPFiles(selectedFolder.name);
 		return;
 	}
 
-	// Ranking take suffixes
+	// Rank files by take suffix priority and version number
 	function getTakeRank(fileName) {
 		var base = fileName.toLowerCase();
-
 		var patterns = [
 			{ regex: /_v(\d+)\.aepx?$/, rank: 100 },
 			{ regex: /_v0\.aepx?$/, rank: 90 },
@@ -101,13 +112,11 @@ function openFile(projects, episodes, cutInput, takeInput) {
 				return patterns[i].rank + version;
 			}
 		}
-		return 0; // fallback if no pattern matched
+		return 0; // fallback rank for no match
 	}
 
-	// Find file with highest take rank
 	var bestFile = cutFiles[0];
 	var bestRank = getTakeRank(bestFile.name);
-
 	for (var m = 1; m < cutFiles.length; m++) {
 		var rank = getTakeRank(cutFiles[m].name);
 		if (rank > bestRank) {
@@ -116,30 +125,28 @@ function openFile(projects, episodes, cutInput, takeInput) {
 		}
 	}
 
+	// ───────────────────────────────────────────────
+	// 4. OPEN BEST FILE IF NOT ALREADY OPEN
+	// ───────────────────────────────────────────────
 	if (bestFile) {
 		if (
 			app.project.file &&
 			decodeURI(app.project.file.fsName) === decodeURI(bestFile.fsName)
 		) {
-			alert(
-				'The most recent take for c.' + cutInput.text + ' is already open.'
-			);
+			Alerts.alertAlreadyOpen(cutInput.text);
 			return;
 		}
+
 		app.project.close(CloseOptions.PROMPT_TO_SAVE_CHANGES);
 		app.open(bestFile);
 
+		// Update takeInput UI element with detected take suffix or fallback
 		if (takeInput) {
-			var fileName = bestFile.name.replace(/\.[^\.]+$/, '');
-			var regex = /(c\d+|g\d+|3d_t\d+|t\d+|v0|v\d+)$/i;
-			var match = fileName.match(regex);
-			if (match) {
-				takeInput.text = match[0].toLowerCase();
-			} else {
-				takeInput.text = '--';
-			}
+			var fileNameNoExt = bestFile.name.replace(/\.[^\.]+$/, '');
+			var takeMatch = fileNameNoExt.match(/(c\d+|g\d+|3d_t\d+|t\d+|v0|v\d+)$/i);
+			takeInput.text = takeMatch ? takeMatch[0].toLowerCase() : '--';
 		}
 	} else {
-		alert('Could not determine the best file to open.');
+		Alerts.alertCouldNotDetermineBestFile();
 	}
 }

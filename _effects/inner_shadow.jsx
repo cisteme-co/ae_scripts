@@ -1,36 +1,22 @@
-function addSlider(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Slider Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
-}
+// ────────────────────────────────────────────────
+// Inner Shadow Effect Script for Selected Layers
+// ────────────────────────────────────────────────
 
-function addAngle(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Angle Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
-}
+// ────────────────────────────────────────────────
+// Drop Shadow Effect Script
+// ────────────────────────────────────────────────
 
-function addColorChange(layers, name, value) {
-	var layer = layers.Effects.addProperty('ADBE Color Control');
-	layer.property(1).setValue(value);
-	layer.name = name;
-}
+var rootFolder = File($.fileName).parent;
 
-function addDropdown(layers, name, defaultIndex) {
-	var dropdown = layers.Effects.addProperty('ADBE Dropdown Control');
-	dropdown.name = name;
-	dropdown.property(1).setValue(defaultIndex);
-	return dropdown;
-}
+// ────────────────────────────────────────────────
+// Import Utility Libraries
+// ────────────────────────────────────────────────
+$.evalFile(new File(rootFolder.fsName + '/utils/alerts.jsx'));
+$.evalFile(new File(rootFolder.fsName + '/utils/controls.jsx'));
 
-function setDropdownItems(dropdown, items) {
-	try {
-		dropdown.property(1).setPropertyParameters(items);
-	} catch (e) {
-		alert('Failed to set dropdown items: ' + e.toString());
-	}
-}
-
+// ────────────────────────────────────────────────
+// Constants and Setup
+// ────────────────────────────────────────────────
 var blendModeNames = [
 	'Normal',
 	'Multiply',
@@ -40,55 +26,78 @@ var blendModeNames = [
 	'Hard Light',
 ];
 
-if (isValid(app.project.activeItem) == true) {
+if (isValid(app.project.activeItem) === true) {
 	app.beginUndoGroup('Inner Shadow');
 
 	var curItem = app.project.activeItem;
 	var selectedLayers = curItem.selectedLayers;
 
-	for (var i = 0; i < selectedLayers.length; i++) {
-		var layer = selectedLayers[i];
+	if (selectedLayers.length === 0) {
+		Alerts.alertNoLayerSelected();
+		app.endUndoGroup();
+	} else {
+		for (var i = 0; i < selectedLayers.length; i++) {
+			var layer = selectedLayers[i];
 
-		app.executeCommand(9001); // Add layer styles
+			try {
+				// Add layer styles (inner shadow)
+				app.executeCommand(9001);
 
-		addColorChange(layer, 'Color', [0, 0, 0]);
-		var blendDropdown = addDropdown(layer, 'Blend Mode', 1);
-		setDropdownItems(blendDropdown, blendModeNames);
-		addSlider(layer, 'Opacity', 100);
-		addAngle(layer, 'Angle', 120);
-		addSlider(layer, 'Distance', 0);
-		addSlider(layer, 'Choke', 0);
-		addSlider(layer, 'Size', 5);
+				// Add controls
+				Controls.addColorChange(layer, 'Color', [0, 0, 0]);
+				var blendDropdown = Controls.addDropdown(layer, 'Blend Mode', 2);
+				Controls.setDropdownItems(blendDropdown, blendModeNames);
+				Controls.addSlider(layer, 'Opacity', 100);
+				Controls.addAngle(layer, 'Angle', 120);
+				Controls.addSlider(layer, 'Distance', 0);
+				Controls.addSlider(layer, 'Choke', 0);
+				Controls.addSlider(layer, 'Size', 5);
 
-		// Use matchNames for expression referencing
-		var innerShadow = layer
-			.property('ADBE Layer Styles')
-			.property('innerShadow/enabled');
+				// Reference innerShadow layer style properties by matchName
+				var innerShadow = layer
+					.property('ADBE Layer Styles')
+					.property('innerShadow/enabled');
 
-		innerShadow.property('innerShadow/mode2').expression =
-			'var mode = effect("Dropdown Menu Control")("Menu");\n' +
-			'mode == 1 ? 1 :\n' +
-			'mode == 2 ? 5 :\n' +
-			'mode == 3 ? 11 :\n' +
-			'mode == 4 ? 16 :\n' +
-			'mode == 5 ? 17 :\n' +
-			'mode == 6 ? 18 :\n' +
-			'1;';
-		innerShadow.property('innerShadow/color').expression =
-			'effect("Color")("ADBE Color Control-0001")';
-		innerShadow.property('innerShadow/opacity').expression =
-			'effect("Opacity")("ADBE Slider Control-0001")';
-		innerShadow.property('innerShadow/localLightingAngle').expression =
-			'effect("Angle")("ADBE Angle Control-0001") - 180';
-		innerShadow.property('innerShadow/distance').expression =
-			'effect("Distance")("ADBE Slider Control-0001")';
-		innerShadow.property('innerShadow/chokeMatte').expression =
-			'effect("Choke")("ADBE Slider Control-0001")';
-		innerShadow.property('innerShadow/blur').expression =
-			'effect("Size")("ADBE Slider Control-0001")';
+				innerShadow.property('innerShadow/mode2').expression =
+					'var mode = effect("Dropdown Menu Control")("Menu");\n' +
+					'mode == 1 ? 1 :\n' +
+					'mode == 2 ? 5 :\n' +
+					'mode == 3 ? 11 :\n' +
+					'mode == 4 ? 16 :\n' +
+					'mode == 5 ? 17 :\n' +
+					'mode == 6 ? 18 :\n' +
+					'1;';
+
+				innerShadow.property('innerShadow/color').expression =
+					'effect("Color")("ADBE Color Control-0001")';
+
+				innerShadow.property('innerShadow/opacity').expression =
+					'effect("Opacity")("ADBE Slider Control-0001")';
+
+				innerShadow.property('innerShadow/localLightingAngle').expression =
+					'effect("Angle")("ADBE Angle Control-0001") - 180';
+
+				innerShadow.property('innerShadow/distance').expression =
+					'effect("Distance")("ADBE Slider Control-0001")';
+
+				innerShadow.property('innerShadow/chokeMatte').expression =
+					'effect("Choke")("ADBE Slider Control-0001")';
+
+				innerShadow.property('innerShadow/blur').expression =
+					'effect("Size")("ADBE Slider Control-0001")';
+			} catch (err) {
+				alert(
+					'Error applying Inner Shadow on layer "' +
+						layer.name +
+						'": ' +
+						err.toString()
+				);
+				app.endUndoGroup();
+				break;
+			}
+		}
+		app.endUndoGroup();
 	}
-
-	app.endUndoGroup();
 } else {
-	alert('レイヤーを選択してください。');
+	Alerts.alertNoCompSelected();
 }

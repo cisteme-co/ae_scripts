@@ -1,6 +1,19 @@
 (function (thisObj) {
+	var rootFolder = File($.fileName).parent;
+
+	// ────────────────────────────────────────────────
+	// Load core dependency
+	// ────────────────────────────────────────────────
+	$.evalFile(new File(rootFolder.fsName + '/utils/json2.js'));
+
+	// ────────────────────────────────────────────────
+	// Main entry: build UI
+	// ────────────────────────────────────────────────
 	buildUI(thisObj);
 
+	// ────────────────────────────────────────────────
+	// buildUI: Create the main window with tabs and controls
+	// ────────────────────────────────────────────────
 	function buildUI(thisObj) {
 		var win =
 			thisObj instanceof Panel
@@ -8,6 +21,7 @@
 				: new Window('palette', 'Tools & Effects Box', undefined, {
 						resizeable: true,
 				  });
+
 		win.alignChildren = 'fill';
 		win.spacing = 4;
 
@@ -15,41 +29,51 @@
 		var effectsPath = scriptPath + '/_effects';
 		var toolsPath = scriptPath + '/_tools';
 
-		var tPanel = win.add('tabbedpanel');
-		tPanel.borderStyle = 'none';
-		var effects = tPanel.add('tab', undefined, 'Effects');
-		effects.alignChildren = 'fill';
-		var effectsList = effects.add('listbox', undefined, []);
+		var tabPanel = win.add('tabbedpanel');
+		tabPanel.borderStyle = 'none';
+
+		// Effects tab
+		var effectsTab = tabPanel.add('tab', undefined, 'Effects');
+		effectsTab.alignChildren = 'fill';
+		var effectsList = effectsTab.add('listbox', undefined, [], {
+			multiselect: false,
+		});
 		effectsList.preferredSize = [100, 400];
 		populateList(effectsList, getFiles(effectsPath));
 
-		var tools = tPanel.add('tab', undefined, 'Tools');
-		tools.alignChildren = 'fill';
-		var toolsList = tools.add('listbox', undefined, []);
+		// Tools tab
+		var toolsTab = tabPanel.add('tab', undefined, 'Tools');
+		toolsTab.alignChildren = 'fill';
+		var toolsList = toolsTab.add('listbox', undefined, [], {
+			multiselect: false,
+		});
 		toolsList.preferredSize = [100, 400];
 		populateList(toolsList, getFiles(toolsPath));
 
-		var applyButton = win.add('button', undefined, 'Apply');
-		applyButton.onClick = function () {
-			if (tPanel.selection.text == 'Effects') {
-				if (effectsList.selection.text != undefined) {
-					runFile(effectsPath, effectsList);
-				} else {
-					alert('No Effects selected.');
-				}
+		// Apply button
+		var btnGrp = win.add('group');
+		btnGrp.alignment = 'center';
+		btnGrp.orientation = 'row';
+		var applyBtn = btnGrp.add('button', undefined, 'Apply');
+		applyBtn.onClick = function () {
+			var activeTab = tabPanel.selection;
+			if (!activeTab) return;
+
+			var list = activeTab.text === 'Effects' ? effectsList : toolsList;
+			if (!list.selection) {
+				alert('No ' + activeTab.text + ' selected.');
+				return;
 			}
 
-			if (tPanel.selection.text == 'Tools') {
-				if (toolsList.selection.text != undefined) {
-					runFile(toolsPath, toolsList);
-				} else {
-					alert('No Tools selected.');
-				}
-			}
+			runFile(
+				activeTab.text === 'Effects' ? effectsPath : toolsPath,
+				list.selection.text
+			);
 		};
 
-		var reloadButton = win.add('button', undefined, 'Reload');
-		reloadButton.onClick = function () {
+		// Reload button
+		var reloadBtn = btnGrp.add('button', undefined, 'Reload');
+		reloadBtn.onClick = function () {
 			effectsList.removeAll();
 			toolsList.removeAll();
 
@@ -57,10 +81,12 @@
 			populateList(toolsList, getFiles(toolsPath));
 		};
 
+		// Resize event handler
 		win.onResizing = win.onResize = function () {
 			this.layout.resize();
 		};
 
+		// Show window or layout panel
 		if (win instanceof Window) {
 			win.center();
 			win.show();
@@ -69,49 +95,71 @@
 			win.layout.resize();
 		}
 	}
-})(this);
 
-function populateList(list, items) {
-	for (var i = 0; i < items.length; i++) {
-		var name = items[i].name.replace(/_/g, ' ').replace('.jsx', '');
-		var words = name.split(' ');
-		var capitalizedWords = [];
+	// ────────────────────────────────────────────────
+	// populateList: Populate a listbox with file names,
+	//               formatted nicely
+	// ────────────────────────────────────────────────
+	function populateList(list, files) {
+		for (var i = 0; i < files.length; i++) {
+			var name = files[i].name.replace(/_/g, ' ').replace(/\.(jsx|ffx)$/i, '');
 
-		for (var j = 0; j < words.length; j++) {
-			var word = words[j];
-			if (word.length > 0) {
-				capitalizedWords.push(word.charAt(0).toUpperCase() + word.slice(1));
+			var words = name.split(' ');
+			var capitalizedWords = [];
+
+			for (var j = 0; j < words.length; j++) {
+				var word = words[j];
+				if (word.length > 0) {
+					capitalizedWords.push(word.charAt(0).toUpperCase() + word.slice(1));
+				}
+			}
+
+			var capitalized = capitalizedWords.join(' ');
+			list.add('item', capitalized);
+		}
+	}
+
+	// ────────────────────────────────────────────────
+	// getFiles: Get .jsx and .ffx files from a folder,
+	//           returns array of File objects
+	// ────────────────────────────────────────────────
+	function getFiles(folderPath) {
+		var folder = Folder(folderPath);
+		if (!folder.exists) return [];
+
+		var allFiles = folder.getFiles();
+		var filtered = [];
+
+		for (var i = 0; i < allFiles.length; i++) {
+			if (allFiles[i] instanceof File) {
+				var extMatch = allFiles[i].name.match(/\.(jsx|ffx)$/i);
+				if (extMatch) filtered.push(allFiles[i]);
 			}
 		}
-
-		var capitalized = capitalizedWords.join(' ');
-		list.add('item', capitalized);
+		return filtered;
 	}
-}
 
-function getFiles(path) {
-	var files = Folder(path).getFiles();
-	var jsx = [];
-	for (var i = 0; i < files.length; i++) {
-		var extension = files[i].name.split('.')[1];
-		if (extension.toLowerCase() == 'jsx' || extension == 'ffx') {
-			jsx.push(files[i]);
+	// ────────────────────────────────────────────────
+	// runFile: Execute the selected script file
+	// ────────────────────────────────────────────────
+	function runFile(folderPath, selectedName) {
+		var fileName = selectedName.toLowerCase().replace(/ /g, '_') + '.jsx';
+		var file = File(folderPath + '/' + fileName);
+
+		if (!file.exists) {
+			alert('Could not find file:\n' + fileName);
+			return;
+		}
+
+		if (file.open('r')) {
+			try {
+				eval(file.read());
+			} catch (e) {
+				alert('Error running script:\n' + e.toString());
+			}
+			file.close();
+		} else {
+			alert('Failed to open file:\n' + fileName);
 		}
 	}
-
-	return jsx;
-}
-
-function runFile(path, list) {
-	var selectedName = list.selection.text;
-	var fileName = selectedName.toLowerCase().replace(/ /g, '_') + '.jsx';
-	var effectFile = File(path + '/' + fileName);
-
-	if (effectFile.exists) {
-		effectFile.open();
-		eval(effectFile.read());
-		effectFile.close();
-	} else {
-		alert('Could not find file:\n' + fileName);
-	}
-}
+})(this);

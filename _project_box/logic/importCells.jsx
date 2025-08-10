@@ -1,34 +1,55 @@
+// ────────────────────────────────────────────────
+// Import Cells Script with Alerts and Folder Setup
+// ────────────────────────────────────────────────
+
 function importCells() {
+	// ──────────────
+	// Validate project saved
+	// ──────────────
 	if (!app.project.file) {
-		alert('Please save your project file first.');
+		Alerts.alertSaveProjectFirst();
 		return;
 	}
 
+	// ──────────────
+	// Validate filename format
+	// ──────────────
 	var fileName = app.project.file.name;
 	var fileNameSplit = fileName.split('_');
 	if (fileNameSplit.length < 3) {
-		alert('Unexpected filename format: ' + fileName);
+		Alerts.alertUnexpectedFilename(fileName);
 		return;
 	}
 
+	// ──────────────
+	// Extract project info
+	// ──────────────
 	var project = fileNameSplit[0];
 	var episode = fileNameSplit[1];
 	var cut = fileNameSplit[2];
 	var baseName = [project, episode, cut].join('_').toLowerCase();
 
+	// ──────────────
+	// Locate project folder 5 levels up
+	// ──────────────
 	var projectFolder = getNthParentFolder(app.project.file.parent, 5);
 	if (!projectFolder) {
-		alert('Could not find project folder 5 levels up.');
+		Alerts.alertCouldNotFindProjectFolder();
 		return;
 	}
 
+	// ──────────────
+	// Check for paint folder existence
+	// ──────────────
 	var paintFolder = new Folder(projectFolder.fsName + '/assets/paint/');
 	if (!paintFolder.exists) {
-		alert('Background folder does not exist:\n' + paintFolder.fsName);
+		Alerts.alertPaintFolderMissing(paintFolder.fsName);
 		return;
 	}
 
+	// ──────────────
 	// Find episode folder (e.g. orb01)
+	// ──────────────
 	var targetName = (project + episode).toLowerCase();
 	var episodeFolders = paintFolder.getFiles(function (f) {
 		return f instanceof Folder;
@@ -43,10 +64,13 @@ function importCells() {
 	}
 
 	if (!episodeFolder) {
-		alert('Episode folder not found: ' + targetName);
+		Alerts.alertEpisodeFolderNotFound(targetName);
 		return;
 	}
 
+	// ──────────────
+	// Begin undo group
+	// ──────────────
 	app.beginUndoGroup('Import Cell');
 
 	importCellAssets(episodeFolder, baseName, cut);
@@ -54,6 +78,9 @@ function importCells() {
 	app.endUndoGroup();
 }
 
+// ────────────────────────────────────────────────
+// Import cell assets inside episode folder
+// ────────────────────────────────────────────────
 function importCellAssets(folder, baseName, cut) {
 	var bins = setupBins();
 
@@ -69,7 +96,7 @@ function importCellAssets(folder, baseName, cut) {
 	}
 
 	if (!foundCell) {
-		alert('No cell folder found for: ' + baseName);
+		Alerts.alertNoCellFolderFound(baseName);
 		return;
 	}
 
@@ -89,6 +116,9 @@ function importCellAssets(folder, baseName, cut) {
 	}
 }
 
+// ────────────────────────────────────────────────
+// Import single images as individual footage
+// ────────────────────────────────────────────────
 function importImagesIndividually(folder, targetBin) {
 	var files = folder.getFiles(function (f) {
 		return (
@@ -109,11 +139,14 @@ function importImagesIndividually(folder, targetBin) {
 				footage.parentFolder = targetBin;
 			}
 		} catch (err) {
-			alert('Failed to import: ' + files[i].name + '\n' + err.toString());
+			Alerts.alertFailedToImportFile(files[i].name, err.toString());
 		}
 	}
 }
 
+// ────────────────────────────────────────────────
+// Import image sequences as footage sequence
+// ────────────────────────────────────────────────
 function importImageSequence(folder, targetBin) {
 	var files = folder.getFiles(function (f) {
 		return (
@@ -122,7 +155,7 @@ function importImageSequence(folder, targetBin) {
 	});
 
 	if (files.length === 0) {
-		alert('No sequence found in ' + folder.name);
+		Alerts.alertNoSequenceFound(folder.name);
 		return;
 	}
 
@@ -143,13 +176,13 @@ function importImageSequence(folder, targetBin) {
 			footage.parentFolder = targetBin;
 		}
 	} catch (err) {
-		alert(
-			'Failed to import sequence in ' + folder.name + '\n' + err.toString()
-		);
+		Alerts.alertFailedToImportSequence(folder.name, err.toString());
 	}
 }
 
-// Helper: Find or create a bin (FolderItem) by name at root level or inside a parent bin
+// ────────────────────────────────────────────────
+// Helper: Find or create a bin (FolderItem) by name
+// ────────────────────────────────────────────────
 function findOrCreateBin(binName, parentBin) {
 	parentBin = parentBin || app.project.rootFolder;
 
@@ -164,7 +197,9 @@ function findOrCreateBin(binName, parentBin) {
 	return parentBin.items.addFolder(binName);
 }
 
-// Call this at the start of importCellAssets to setup bins
+// ────────────────────────────────────────────────
+// Setup bins hierarchy for imports
+// ────────────────────────────────────────────────
 function setupBins() {
 	var bin2D = findOrCreateBin('2D');
 	var binLo = findOrCreateBin('_lo', bin2D);

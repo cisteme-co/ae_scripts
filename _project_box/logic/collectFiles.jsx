@@ -1,122 +1,131 @@
 function collectFiles() {
+	// ───────────────────────────────────────────────
+	// 0. INITIAL VALIDATION
+	// ───────────────────────────────────────────────
 	if (!app.project.file) {
-		alert('Please save your project file first.');
+		Alerts.alertSaveProjectFirst();
 		return;
 	}
 
 	var projectFolder = getNthParentFolder(app.project.file.parent, 5);
-	if (!projectFolder) {
-		alert('Could not find project folder 5 levels up.');
+	if (!projectFolder || !projectFolder.exists) {
+		Alerts.alertCouldNotFindProjectFolder();
 		return;
 	}
 
+	// ───────────────────────────────────────────────
+	// 1. SETUP DESTINATION PATHS
+	// ───────────────────────────────────────────────
 	var toSendFolder = new Folder(projectFolder.fsName + '/to_send/compositing/');
-
-	// Get date as YYYYMMDD
 	var now = new Date();
-	var yyyy = now.getFullYear();
-	var mm = ('0' + (now.getMonth() + 1)).slice(-2);
-	var dd = ('0' + now.getDate()).slice(-2);
-	var dateStr = yyyy + mm + dd;
+	var dateStr =
+		now.getFullYear().toString() +
+		('0' + (now.getMonth() + 1)).slice(-2) +
+		('0' + now.getDate()).slice(-2);
 
-	var projectName = app.project.file.name.replace(/\.[^\.]+$/, ''); // remove extension
+	var projectName = app.project.file.name.replace(/\.[^\.]+$/, '');
 	var destinationPath =
 		toSendFolder.fsName + '/' + dateStr + '/aep/' + projectName;
 	var destFolder = new Folder(destinationPath);
-	if (!destFolder.exists) {
-		destFolder.create();
+	if (!destFolder.exists && !destFolder.create()) {
+		Alerts.alertFailedCreateFolder(destFolder.fsName);
+		return;
 	}
 
-	var project = app.project;
-
-	// Step 1: Save the current project as a copy in the destination folder
-	var projectFile = app.project.file;
-	var destAepFile = new File(destFolder.fsName + '/' + projectFile.name);
-	if (!destAepFile.exists) {
-		var saved = app.project.save(destAepFile);
-		if (!saved) {
-			alert('Failed to save project copy!');
-			return;
-		}
-	} else {
-		// If already exists, overwrite to make sure it's current
-		var saved = app.project.save(destAepFile);
-		if (!saved) {
-			alert('Failed to save project copy!');
-			return;
-		}
+	// ───────────────────────────────────────────────
+	// 2. SAVE PROJECT COPY
+	// ───────────────────────────────────────────────
+	var destAepFile = new File(destFolder.fsName + '/' + app.project.file.name);
+	if (!app.project.save(destAepFile)) {
+		Alerts.alertFailedSaveProjectCopy();
+		return;
 	}
 
-	// Step 2: Copy assets
-	for (var i = 1; i <= project.numItems; i++) {
-		var item = project.item(i);
-		if (!(item instanceof FootageItem)) continue;
+	// ───────────────────────────────────────────────
+	// 3. COPY ASSETS
+	// ───────────────────────────────────────────────
+	for (var i = 1; i <= app.project.numItems; i++) {
+		var item = app.project.item(i);
 
-		var source = item.mainSource;
-		if (!source || !source.file) continue;
+		// Skip anything that's not a FootageItem or missing a valid source file
+		if (
+			!(item instanceof FootageItem) ||
+			!item.mainSource ||
+			!item.mainSource.file
+		)
+			continue;
 
-		var srcFile = source.file;
-
+		var srcFile = item.mainSource.file;
 		var relativeFolderPath = getItemFolderPath(item);
 		var itemDestFolder = new Folder(
 			destFolder.fsName + '/' + relativeFolderPath
 		);
 		if (!itemDestFolder.exists) itemDestFolder.create();
 
-		if (source.isStill === false) {
-			// Copy the whole folder where the sequence lives
-			var sequenceFolder = srcFile.parent;
-			var destSequenceParentFolder = new Folder(
-				itemDestFolder.fsName + '/' + sequenceFolder.name
-			);
-			copyFolderContents(sequenceFolder, destSequenceParentFolder);
-		} else {
-			// Copy single file
-			var targetFile = new File(itemDestFolder.fsName + '/' + srcFile.name);
-			if (!targetFile.exists) srcFile.copy(targetFile);
+		try {
+			if (item.mainSource.isStill === false) {
+				// Copy the entire sequence folder
+				var sequenceFolder = srcFile.parent;
+				var destSequenceParentFolder = new Folder(
+					itemDestFolder.fsName + '/' + sequenceFolder.name
+				);
+				copyFolderContents(sequenceFolder, destSequenceParentFolder);
+			} else {
+				// Copy single file
+				var targetFile = new File(itemDestFolder.fsName + '/' + srcFile.name);
+				if (!targetFile.exists) srcFile.copy(targetFile);
+			}
+		} catch (err) {
+			Alerts.alertErrorCopyingAsset(srcFile.fsName, err.toString());
 		}
 	}
 
-	// Step 3: Replace footage paths inside the open project with the copied files
-	for (var i = 1; i <= project.numItems; i++) {
-		var item = project.item(i);
-		if (!(item instanceof FootageItem)) continue;
+	// ───────────────────────────────────────────────
+	// 4. REPLACE FOOTAGE PATHS IN PROJECT
+	// ───────────────────────────────────────────────
+	for (var i = 1; i <= app.project.numItems; i++) {
+		var item = app.project.item(i);
+		if (
+			!(item instanceof FootageItem) ||
+			!item.mainSource ||
+			!item.mainSource.file
+		)
+			continue;
 
-		var source = item.mainSource;
-		if (!source || !source.file) continue;
-
-		var srcFile = source.file;
-
+		var srcFile = item.mainSource.file;
 		var relativeFolderPath = getItemFolderPath(item);
 		var itemDestFolder = new Folder(
 			destFolder.fsName + '/' + relativeFolderPath
 		);
 
-		if (source.isStill === false) {
-			// New path points to copied folder + original sequence folder name + original file name
-			var sequenceFolder = srcFile.parent;
-			var destSequenceParentFolder = new Folder(
-				itemDestFolder.fsName + '/' + sequenceFolder.name
-			);
-			var newMainFile = new File(
-				destSequenceParentFolder.fsName + '/' + source.file.name
-			);
-			if (newMainFile.exists) {
-				item.replaceWithSequence(newMainFile, true);
+		try {
+			if (item.mainSource.isStill === false) {
+				var sequenceFolder = srcFile.parent;
+				var destSequenceParentFolder = new Folder(
+					itemDestFolder.fsName + '/' + sequenceFolder.name
+				);
+				var newMainFile = new File(
+					destSequenceParentFolder.fsName + '/' + srcFile.name
+				);
+				if (newMainFile.exists) {
+					item.replaceWithSequence(newMainFile, true);
+				}
+			} else {
+				var targetFile = new File(itemDestFolder.fsName + '/' + srcFile.name);
+				if (targetFile.exists) {
+					item.replace(targetFile);
+				}
 			}
-		} else {
-			var targetFile = new File(itemDestFolder.fsName + '/' + srcFile.name);
-			if (targetFile.exists) {
-				item.replace(targetFile);
-			}
+		} catch (err) {
+			Alerts.alertReplacingFootage(srcFile.fsName, err.toString());
 		}
 	}
 
-	// Step 4: Save the project again with updated paths
+	// ───────────────────────────────────────────────
+	// 5. SAVE FINAL PROJECT AND OPEN FOLDER
+	// ───────────────────────────────────────────────
 	app.project.save();
+	if (destFolder.exists) destFolder.execute();
 
-	// Step 5: Open destination folder in OS file explorer
-	destFolder.execute();
-
-	alert('Files collected and project saved to:\n' + destFolder.fsName);
+	Alerts.alertFilesCollected(destFolder.fsName);
 }
