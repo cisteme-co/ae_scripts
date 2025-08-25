@@ -18,7 +18,7 @@ if (isValid(app.project.activeItem) === true) {
 	var rectShape = rectGroup
 		.property('Contents')
 		.addProperty('ADBE Vector Shape - Rect');
-	rectShape.property('ADBE Vector Rect Size').expression =
+	noiseRectShape.property('ADBE Vector Rect Size').expression =
 		'[thisComp.width, thisComp.height];';
 
 	rectGroup

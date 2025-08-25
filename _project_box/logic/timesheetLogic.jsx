@@ -108,10 +108,8 @@ function execAEReamp() {
 	if (!aeremapCall.exists) return false;
 
 	try {
-		var status = system
-			.callSystem(cmd + ' /exenow')
-			.trim()
-			.toLowerCase();
+		var rawStatus = system.callSystem(cmd + ' /exenow');
+		var status = (rawStatus || '').toLowerCase();
 		if (status === 'false') {
 			var result = system.callSystem(cmd + ' /call');
 			if (result.indexOf('err') >= 0) {
@@ -153,7 +151,7 @@ function getCellInfo(edInfo, applyBtn, cellPanel) {
 			alert(AM.errorPrefix + exportPath);
 			return false;
 		}
-		exportPath = exportPath.trim();
+		exportPath = exportPath;
 		if (exportPath === '') {
 			alert(AM.connectionLost);
 			return false;
@@ -164,7 +162,9 @@ function getCellInfo(edInfo, applyBtn, cellPanel) {
 			var jsonStr = f.read();
 			f.close();
 
-			var obj = FsJSON.parse(jsonStr);
+			// Save it somewhere (change path as needed)
+
+			var obj = JSON.parse(jsonStr);
 			if (obj.header === 'ardjV2') {
 				edInfo.text = obj.sheetName;
 				cellData = obj;
@@ -190,30 +190,41 @@ function getCellInfo(edInfo, applyBtn, cellPanel) {
 // Returns object with frameCount, duration, captions, and cell time/value arrays
 // ───────────────────────────────
 function analysisCellData(obj) {
-	var ret = {
-		frameCount: obj.frameCount,
-		caption: [],
-		cell: [],
-		duration: obj.frameCount / obj.frameRate,
-		frameRate: obj.frameRate,
-	};
+	var ret = {};
+	var c = obj.cellCount;
+	var f = obj.frameCount;
+	var fr = obj.frameRate;
+	ret.frameCount = obj.frameCount;
+	ret.caption = [];
+	ret.cell = [];
+	ret.duration = f / fr;
 
-	for (var i = 0; i < obj.cellCount; i++) {
+	for (var i = 0; i < c; i++) {
 		var cd = obj.cell[i];
-		if (cd.length === 1 && cd[0][0] === 0 && cd[0][1] === 0) continue;
+		if (cd.length === 1) continue;
 
+		// Skip if all frames are [0,0]
+		var allZero = true;
+		for (var j = 0; j < cd.length; j++) {
+			if (cd[j][0] !== 0 || cd[j][1] !== 0) {
+				allZero = false;
+				break;
+			}
+		}
+		if (allZero) continue;
 		ret.caption.push(obj.caption[i]);
 
 		var times = [];
 		var values = [];
-
 		for (var j = 0; j < cd.length; j++) {
-			times.push(cd[j][0] / obj.frameRate);
-			values.push((cd[j][1] - 1) / obj.frameRate);
+			times.push(cd[j][0] / fr);
+			values.push((cd[j][1] - 1) / fr);
 		}
-		ret.cell.push([times, values]);
+		var ary = [];
+		ary.push(times);
+		ary.push(values);
+		ret.cell.push(ary);
 	}
-
 	return ret;
 }
 
@@ -233,7 +244,7 @@ function makeRadioBtn(captions, applyBtn, cellPanel) {
 
 		rb.onClick = function () {
 			selectedIndex = this.idx;
-			applyBtn.text = 'Apply ' + cellData.caption[this.idx];
+			applyBtn.text = 'Apply ' + captions[this.idx];
 		};
 
 		radioBtns.push(rb);
@@ -299,33 +310,27 @@ function applyCells(inOutPoint, emptyCell) {
 	}
 
 	// Internal helper to apply remap and effects on a single layer
-	function applySub(
-		layer,
+	var applySub = function (
+		lyr,
 		times,
 		values,
-		empties,
+		emptys,
 		emptyTimes,
 		inOutPoint,
 		emptyCell
 	) {
-		if (!layer.canSetTimeRemapEnabled) return;
-
+		if (lyr.canSetTimeRemapEnabled == false) {
+			return;
+		}
 		try {
-			var rp = layer.property(2); // Time remap property
-
-			// Clear existing keys
-			for (var i = rp.numKeys; i >= 1; i--) rp.removeKey(i);
-
-			layer.timeRemapEnabled = true;
-
-			// Reset layer timing
-			layer.startTime = 0;
-			layer.inPoint = 0;
-			layer.outPoint = layer.containingComp.duration;
-
-			var fr = layer.containingComp.frameRate;
-
-			// Set new keyframes and hold interpolation
+			var rp = lyr.property(2);
+			if (rp.numKeys > 0) for (var i = rp.numKeys; i >= 1; i--) rp.removeKey(i);
+			lyr.timeRemapEnabled = true;
+			if (rp.numKeys > 0) for (var i = rp.numKeys; i > 1; i--) rp.removeKey(i);
+			lyr.startTime = 0;
+			lyr.inPoint = 0;
+			lyr.outPoint = lyr.containingComp.duration;
+			var fr = lyr.containingComp.frameRate;
 			rp.setValuesAtTimes(times, values);
 			for (var i = 1; i <= rp.numKeys; i++) {
 				rp.setInterpolationTypeAtKey(
@@ -334,50 +339,50 @@ function applyCells(inOutPoint, emptyCell) {
 					KeyframeInterpolationType.HOLD
 				);
 			}
-
-			// Apply empty cell effects based on mode
 			switch (emptyCell) {
-				case 0: {
-					// Block Dissolve effect
-					var eg = layer.property('ADBE Effect Parade');
+				case 0:
+					var eg = lyr.property('ADBE Effect Parade');
 					var mn = 'ADBE Block Dissolve';
 					var na = 'EmptyCell';
-
-					if (eg.canAddProperty(mn)) {
+					if (eg.canAddProperty(mn) == true) {
 						var bp = findProp(eg, mn, na);
-						if (!bp) {
-							bp = eg.addProperty(mn);
-							bp.name = na;
-						}
-						var bpv = bp.property(1);
 
-						// Clear existing keys
-						for (var i = bpv.numKeys; i >= 1; i--) bpv.removeKey(i);
-
-						// Set new keys and hold interpolation
-						bpv.setValuesAtTimes(emptyTimes, empties);
-						for (var i = 1; i <= bpv.numKeys; i++) {
-							bpv.setInterpolationTypeAtKey(
-								i,
-								KeyframeInterpolationType.HOLD,
-								KeyframeInterpolationType.HOLD
-							);
+						if (emptys.length == 1 && emptys[0] == 0) {
+							if (bp != null) {
+								bp.remove();
+								bp = null;
+							}
+						} else {
+							if (bp == null) {
+								bp = eg.addProperty(mn);
+								bp.name = na;
+							}
+							var bpv = bp.property(1);
+							if (bpv.numKeys > 0)
+								for (var i = bpv.numKeys; i >= 1; i--) bpv.removeKey(i);
+							bpv.setValuesAtTimes(emptyTimes, emptys);
+							for (var i = 1; i <= bpv.numKeys; i++) {
+								bpv.setInterpolationTypeAtKey(
+									i,
+									KeyframeInterpolationType.HOLD,
+									KeyframeInterpolationType.HOLD
+								);
+							}
 						}
 					}
 					break;
-				}
-				case 1: {
-					// Toggle Opacity effect
-					var opa = layer.transform.opacity;
-
-					for (var i = opa.numKeys; i >= 1; i--) opa.removeKey(i);
-
-					// Invert opacity values (100 <-> 0)
-					for (var i = 0; i < empties.length; i++) {
-						empties[i] = empties[i] === 100 ? 0 : 100;
+				case 2:
+					var opa = lyr.transform.opacity;
+					if (opa.numKeys > 0)
+						for (var i = opa.numKeys; i >= 1; i--) opa.removeKey(i);
+					for (var i = 0; i < emptys.length; i++) {
+						if (emptys[i] == 100) {
+							emptys[i] = 0;
+						} else {
+							emptys[i] = 100;
+						}
 					}
-
-					opa.setValuesAtTimes(emptyTimes, empties);
+					opa.setValuesAtTimes(emptyTimes, emptys);
 					for (var i = 1; i <= opa.numKeys; i++) {
 						opa.setInterpolationTypeAtKey(
 							i,
@@ -386,34 +391,29 @@ function applyCells(inOutPoint, emptyCell) {
 						);
 					}
 					break;
-				}
+				case 1:
 				default:
-					// No effect
 					break;
 			}
-
-			// Adjust in/out points based on remap keys if requested
-			if (inOutPoint) {
+			if (inOutPoint == true) {
 				if (rp.numKeys > 2) {
-					var maxV = Math.round(layer.source.duration * fr);
-
-					var firstValFrame = Math.round(rp.keyValue(1) * fr);
-					if (firstValFrame >= maxV) {
-						layer.inPoint = rp.keyTime(2);
+					var maxV = Math.round(lyr.source.duration * fr);
+					var ff = Math.round(rp.keyValue(1) * fr);
+					if (ff >= maxV) {
+						lyr.inPoint = rp.keyTime(2);
 					}
-
-					var lastValFrame = Math.round(rp.keyValue(rp.numKeys) * fr);
-					if (lastValFrame >= maxV) {
-						layer.outPoint = rp.keyTime(rp.numKeys);
+					ff = Math.round(rp.keyValue(rp.numKeys) * fr);
+					if (ff >= maxV) {
+						lyr.outPoint = rp.keyTime(rp.numKeys);
 					}
 				}
 			} else {
-				layer.outPoint = layer.containingComp.duration;
+				lyr.outPoint = lyr.containingComp.duration;
 			}
 		} catch (e) {
 			alert(e.toString());
 		}
-	}
+	};
 
 	if (selectedIndex < 0) {
 		alert(AM.selectCell);

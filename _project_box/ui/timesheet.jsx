@@ -21,7 +21,7 @@
 				clearBtn: 'Clear',
 				centerBtn: 'Center',
 				getCellBtn: 'Get Cell',
-				emptyTypeOptions: ['Dissolve', 'Opacity'],
+				emptyTypeOptions: ['Dissolve', 'Use Last Frame', 'Opacity'],
 				inOutPoint: 'In/Out Point',
 				applyBtn: 'Apply',
 				cellPanel: 'Cells',
@@ -36,7 +36,7 @@
 				clearBtn: 'クリア',
 				centerBtn: '中央配置',
 				getCellBtn: 'セル取得',
-				emptyTypeOptions: ['ディゾルブ', '不透明度'],
+				emptyTypeOptions: ['ディゾルブ', 'リマップ最大値', '不透明度'],
 				inOutPoint: 'イン／アウトポイント',
 				applyBtn: '適用',
 				cellPanel: 'セル',
@@ -91,7 +91,7 @@
 		emptyType.selection = 0;
 
 		var inOutPoint = panelGroup.add('checkbox', undefined, L.inOutPoint);
-		inOutPoint.value = true;
+		inOutPoint.value = false;
 
 		// ───────────────────────────────
 		// Right column: output & action

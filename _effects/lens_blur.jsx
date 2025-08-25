@@ -89,7 +89,8 @@ $.evalFile(new File(rootFolder.fsName + '/utils/alerts.jsx'));
 	// ────────────────────────────────────────────
 	var btnGrp = win.add('group');
 	btnGrp.orientation = 'row';
-	btnGrp.alignChildren = 'center';
+	btnGrp.alignChildren = ['center', 'center']; // Center contents horizontally and vertically
+	btnGrp.alignment = ['center', 'top']; // Center the whole group in its parent
 
 	var oofBtn = btnGrp.add('button', undefined, 'Out of Focus');
 	var dofBtn = btnGrp.add('button', undefined, 'Depth of Field');

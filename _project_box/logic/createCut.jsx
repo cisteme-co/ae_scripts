@@ -137,6 +137,86 @@ function createCut(
 		replaceComp('_work', newCamera, newWork);
 		replaceComp('camera', newFilters, newCamera);
 		replaceComp('filters', newRender, newFilters);
+
+		// --- Create render folders ---
+		// --- Prepare renders folder with today's date appended ---
+		try {
+			var today = new Date();
+			var yyyy = today.getFullYear();
+			var mm = padStart2(today.getMonth() + 1);
+			var dd = padStart2(today.getDate());
+			var dateSuffix = yyyy + mm + dd;
+
+			if (
+				typeof production !== 'string' ||
+				!production.length ||
+				!episode ||
+				typeof episode.text !== 'string' ||
+				!episode.text.length
+			) {
+				alert(
+					'Invalid production path or episode text. Cannot create render folder.'
+				);
+				return;
+			}
+
+			var rendersPath =
+				production + '/' + episode.text + '/renders/' + dateSuffix;
+			var renderFolder = new Folder(rendersPath);
+			if (!renderFolder.exists) {
+				if (!renderFolder.create()) {
+					alert('Failed to create render folder: ' + renderFolder.fsName);
+					return;
+				}
+			}
+
+			var checkFolder = new Folder(renderFolder.fsName + '/check');
+			if (!checkFolder.exists) {
+				if (!checkFolder.create()) {
+					alert('Failed to create check folder: ' + checkFolder.fsName);
+					return;
+				}
+			}
+
+			// --- Add ProRes output ---
+			var rqItem = app.project.renderQueue.items.add(newRender);
+
+			// First output module (ProRes)
+			var firstOM = rqItem.outputModules[1];
+			firstOM.file = new File(
+				renderFolder.fsName + '/' + newRender.name + '.mov'
+			);
+			applyOrCreateOM(rqItem, 1, 'Apple ProRes 422 HQ', {
+				'Output File Info': {
+					'Base Path': renderFolder.fsName,
+					'File Name': newRender.name + '.mov',
+				},
+				'Video Output': {
+					'Output Channels': 'RGB',
+					Depth: 'Millions of Colors',
+					Color: 'Premultiplied (Matted)',
+				},
+			});
+
+			// Additional output modules (MP4 etc)
+			var mp4Module = rqItem.outputModules.add();
+			mp4Module.file = new File(
+				checkFolder.fsName + '/' + newRender.name + '.mp4'
+			);
+			applyOrCreateOM(rqItem, 2, 'H.264 - Match Render Settings -  5 Mbps', {
+				'Output File Info': {
+					'Base Path': checkFolder.fsName,
+					'File Name': newRender.name + '.mp4',
+				},
+				'Video Output': {
+					'Output Channels': 'RGB',
+					Depth: 'Millions of Colors',
+					Color: 'Premultiplied (Matted)',
+				},
+			});
+		} catch (e) {
+			alert(e.toString());
+		}
 	}
 
 	// ──────────────
@@ -145,6 +225,8 @@ function createCut(
 	var folder000 = getFolder('000');
 	if (folder000) folder000.remove();
 	if (renderComp) renderComp.remove();
+
+	// After creating newRender and setting its name/duration:
 
 	// ──────────────
 	// Rename worker input (assumes function handles validation)
@@ -179,4 +261,59 @@ function createCut(
 	Alerts && Alerts.alertCutCreated
 		? Alerts.alertCutCreated(allCuts)
 		: alert('Cut "' + allCuts + '" created!');
+}
+
+function applyOrCreateOM(rqItem, moduleIndex, templateName, fallbackSettings) {
+	var om = rqItem.outputModules[moduleIndex];
+
+	if (hasTemplate(om, templateName)) {
+		try {
+			om.applyTemplate(templateName);
+		} catch (e) {
+			alert('Failed to apply template "' + templateName + '": ' + e.toString());
+			safeSetSettings(om, fallbackSettings);
+		}
+	} else {
+		alert('Missing Output Module Template: "' + templateName + '"');
+		safeSetSettings(om, fallbackSettings);
+	}
+}
+
+function hasTemplate(om, templateName) {
+	for (var i = 0; i < om.templates.length; i++) {
+		if (om.templates[i] === templateName) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Only set safe keys to avoid AE errors
+function safeSetSettings(om, settings) {
+	var allowedKeys = [
+		'Output File Info',
+		'Video Output',
+		'Audio Output',
+		'Channels',
+		'Depth',
+		'Color',
+	];
+
+	var filteredSettings = {};
+	for (var key in settings) {
+		if (allowedKeys.indexOf(key) !== -1) {
+			filteredSettings[key] = settings[key];
+		}
+	}
+
+	try {
+		om.setSettings(filteredSettings);
+	} catch (e) {
+		alert('Failed to apply fallback settings: ' + e.toString());
+	}
+}
+
+function padStart2(str) {
+	str = String(str);
+	return str.length < 2 ? '0' + str : str;
 }
