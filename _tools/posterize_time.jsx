@@ -10,7 +10,6 @@ app.beginUndoGroup('Posterize');
 if (!(app.project.activeItem && app.project.activeItem instanceof CompItem)) {
 	Alerts.alertNoCompSelected();
 	app.endUndoGroup();
-	return;
 }
 
 var comp = app.project.activeItem;
@@ -20,7 +19,6 @@ var selectedLayers = comp.selectedLayers;
 if (selectedLayers.length === 0) {
 	Alerts.alertNoLayerSelected();
 	app.endUndoGroup();
-	return;
 }
 
 // Calculate target posterize frame rate (half the comp's frame rate)

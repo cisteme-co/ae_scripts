@@ -201,17 +201,17 @@ function analysisCellData(obj) {
 
 	for (var i = 0; i < c; i++) {
 		var cd = obj.cell[i];
-		if (cd.length === 1) continue;
 
-		// Skip if all frames are [0,0]
+		// Skip only if all frames are [0,0]
 		var allZero = true;
 		for (var j = 0; j < cd.length; j++) {
-			if (cd[j][0] !== 0 || cd[j][1] !== 0) {
+			if (!(cd[j][0] === 0 && cd[j][1] === 0)) {
 				allZero = false;
 				break;
 			}
 		}
 		if (allZero) continue;
+
 		ret.caption.push(obj.caption[i]);
 
 		var times = [];
@@ -220,10 +220,8 @@ function analysisCellData(obj) {
 			times.push(cd[j][0] / fr);
 			values.push((cd[j][1] - 1) / fr);
 		}
-		var ary = [];
-		ary.push(times);
-		ary.push(values);
-		ret.cell.push(ary);
+
+		ret.cell.push([times, values]);
 	}
 	return ret;
 }

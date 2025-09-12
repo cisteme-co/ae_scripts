@@ -73,9 +73,48 @@ function importCells() {
 	// ──────────────
 	app.beginUndoGroup('Import Cell');
 
+	// Check if latest data already imported
+	if (isLatestDataAlreadyImported(baseName)) {
+		Alerts.alertLatestCellImported(baseName);
+		app.endUndoGroup();
+		return;
+	}
+
 	importCellAssets(episodeFolder, baseName, cut);
+	applyCellFXAndInsert();
 
 	app.endUndoGroup();
+}
+
+// ────────────────────────────────────────────────
+// Helper: Check if latest data already imported
+// ────────────────────────────────────────────────
+function isLatestDataAlreadyImported(baseName) {
+	var bin2D = findOrCreateBin('2D');
+	var binPaint = findOrCreateBin('paint', bin2D);
+	var binData = findOrCreateBin('_data', binPaint);
+
+	baseName = baseName.toLowerCase();
+
+	for (var i = 1; i <= binData.numItems; i++) {
+		var item = binData.item(i);
+
+		if (item instanceof FootageItem && item.file instanceof File) {
+			try {
+				// Get full file path
+				var fullPath = item.file.fsName.toLowerCase();
+
+				// Check if baseName exists anywhere in the folder path
+				if (fullPath.indexOf(baseName) !== -1) {
+					return true;
+				}
+			} catch (e) {
+				continue;
+			}
+		}
+	}
+
+	return false;
 }
 
 // ────────────────────────────────────────────────
@@ -212,4 +251,160 @@ function setupBins() {
 		binPaint: binPaint,
 		binData: binData,
 	};
+}
+
+// ────────────────────────────────────────────────
+// Apply cellFX_maker logic automatically
+// ────────────────────────────────────────────────
+function applyCellFXAndInsert() {
+	var createdFXComps = [];
+
+	// 1. Collect all FootageItems in "paint/_data"
+	var bin2D = findOrCreateBin('2D');
+	var binPaint = findOrCreateBin('paint', bin2D);
+	var binData = findOrCreateBin('_data', binPaint);
+
+	for (var i = 1; i <= binData.numItems; i++) {
+		var item = binData.item(i);
+		if (!(item instanceof FootageItem)) continue;
+
+		var itemName = removeSequenceNumber(item.name);
+
+		// Skip if comp already exists
+		if (getComp(itemName) || getComp(itemName + '_cellFX')) continue;
+
+		// Create cell comp
+		var cellComp = app.project.items.addComp(
+			itemName,
+			item.width,
+			item.height,
+			1,
+			item.duration,
+			1 / item.frameDuration
+		);
+		cellComp.layers.add(item);
+		cellComp.parentFolder = getFolder('cell');
+
+		// Create cellFX comp
+		var cellFXComp = app.project.items.addComp(
+			itemName + '_cellFX',
+			item.width,
+			item.height,
+			1,
+			item.duration,
+			1 / item.frameDuration
+		);
+		var cellFXLayer = cellFXComp.layers.add(cellComp);
+		cellFXComp.parentFolder = getFolder('cellFX');
+
+		// Add Color Key (white)
+		var colorKeyEffect = cellFXLayer.Effects.addProperty('ADBE Color Key');
+		if (colorKeyEffect) {
+			colorKeyEffect.property(1).setValue([1, 1, 1]);
+		}
+
+		// Try anti-aliasing plugins
+		try {
+			cellFXLayer.Effects.addProperty('PSOFT ANTI-ALIASING');
+		} catch (e1) {
+			try {
+				cellFXLayer.Effects.addProperty('OLM Smoother');
+			} catch (e2) {}
+		}
+
+		createdFXComps.push(cellFXComp);
+	}
+
+	// 2. Custom sort created FX comps
+	createdFXComps.sort(customSortCellFX);
+
+	// 3. Find all comps starting with "work"
+	var workComps = [];
+	for (var j = 1; j <= app.project.numItems; j++) {
+		var it = app.project.item(j);
+		if (it instanceof CompItem && /^_work/i.test(it.name)) {
+			workComps.push(it);
+		}
+	}
+
+	// 4. Insert sorted cellFX comps into each work comp
+	for (var k = 0; k < workComps.length; k++) {
+		var wComp = workComps[k];
+
+		// Add in reverse so stacking order matches sorted order
+		for (var m = createdFXComps.length - 1; m >= 0; m--) {
+			wComp.layers.add(createdFXComps[m]);
+		}
+	}
+}
+
+// ────────────────────────────────────────────────
+// Sorting logic for cellFX comps
+// ────────────────────────────────────────────────
+// ────────────────────────────────────────────────
+// Sorting logic for cellFX comps
+// ────────────────────────────────────────────────
+function customSortCellFX(a, b) {
+	function normalize(name) {
+		name = name.replace(/_cellFX$/i, '');
+
+		// Match suffix only if there's an underscore + word after base
+		var suffixMatch = name.match(/_(\w+)$/i);
+		var suffix = suffixMatch ? suffixMatch[1].toLowerCase() : null;
+
+		var type = 'base';
+		if (suffix) {
+			if (suffix === 'ue') type = 'ue';
+			else if (suffix === 'sita' || suffix === 'shita') type = 'sita';
+			else type = 'other';
+		}
+
+		// Remove the suffix if found to get base
+		var base = suffix ? name.replace(/_\w+$/i, '') : name;
+
+		return { base: base, type: type, suffix: suffix, raw: name };
+	}
+
+	var na = normalize(a.name);
+	var nb = normalize(b.name);
+
+	// Step 1: reverse alphabetical by base
+	if (na.base < nb.base) return 1;
+	if (na.base > nb.base) return -1;
+
+	// Step 2: type priority ue → other → base → sita
+	var order = { ue: 0, other: 1, base: 2, sita: 3 };
+	if (order[na.type] !== order[nb.type]) {
+		return order[na.type] - order[nb.type];
+	}
+
+	// Step 3: if both are "other", reverse alphabetical by suffix
+	if (na.type === 'other' && nb.type === 'other') {
+		if (na.suffix < nb.suffix) return 1;
+		if (na.suffix > nb.suffix) return -1;
+	}
+
+	return 0;
+}
+
+function removeSequenceNumber(name) {
+	// Remove optional underscore + brackets with 3-4 digits or range,
+	// or underscore + digits at end,
+	// or digits at end (3-4 digits)
+	return name.replace(
+		/(\_?\[\d{3,4}([~-]\d{3,4})?\](\.\w+)?|\_\d{3,4}(\.\w+)?$|\d{3,4}$)/,
+		''
+	);
+}
+
+function getComp(theName) {
+	for (var i = 1; i <= app.project.numItems; i++) {
+		if (
+			app.project.item(i).name == theName &&
+			app.project.item(i) instanceof CompItem
+		) {
+			return app.project.item(i);
+		}
+	}
+	return null;
 }

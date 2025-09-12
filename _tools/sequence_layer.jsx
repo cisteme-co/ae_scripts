@@ -11,14 +11,12 @@ var comp = app.project.activeItem;
 if (!(comp && comp instanceof CompItem)) {
 	Alerts.alertNoCompSelected();
 	app.endUndoGroup();
-	return;
 }
 
 var selectedLayers = comp.selectedLayers;
 if (selectedLayers.length === 0) {
 	Alerts.alertNoLayerSelected();
 	app.endUndoGroup();
-	return;
 }
 
 var fps = 1 / comp.frameDuration;

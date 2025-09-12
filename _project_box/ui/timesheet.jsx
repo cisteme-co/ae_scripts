@@ -51,7 +51,9 @@
 		// Create palette window or panel
 		// ───────────────────────────────
 		var win =
-			thisObj instanceof Panel ? thisObj : new Window('palette', L.winTitle);
+			thisObj instanceof Panel
+				? thisObj
+				: new Window('palette', L.winTitle, undefined, { resizeable: true });
 
 		win.orientation = 'column';
 		win.alignChildren = 'top';
@@ -123,6 +125,7 @@
 		var cellPanel = scndPanelGroup.add('panel', undefined, L.cellPanel);
 		cellPanel.alignment = ['fill', 'fill'];
 		cellPanel.minimumSize = [200, 200];
+		cellPanel.preferredSize = [300, 300]; // starting size
 
 		// ───────────────────────────────
 		// Event handlers
@@ -165,13 +168,14 @@
 
 		// Show window or layout panel accordingly
 		if (win instanceof Window) {
+			win.onResizing = win.onResize = function () {
+				this.layout.resize();
+			};
 			win.center();
 			win.show();
-			enforceSize();
 		} else {
 			win.layout.layout(true);
 			win.layout.resize();
-			enforceSize();
 		}
 	}
 })(this);

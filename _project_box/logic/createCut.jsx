@@ -18,6 +18,7 @@ function createCut(
 	var projectFolder = getProjects()[project.index];
 	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
 	var production = projectWorkFolder + '/production/compositing/';
+	var check = projectWorkFolder + '/to_send/撮影/check';
 	var templateFiles = projectWorkFolder + '/assets/templates/compositing';
 
 	var thisTemplate = '';
@@ -170,7 +171,7 @@ function createCut(
 				}
 			}
 
-			var checkFolder = new Folder(renderFolder.fsName + '/check');
+			var checkFolder = new Folder(check);
 			if (!checkFolder.exists) {
 				if (!checkFolder.create()) {
 					alert('Failed to create check folder: ' + checkFolder.fsName);

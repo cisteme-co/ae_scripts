@@ -24,13 +24,12 @@ function openFile(projects, episodes, cutInput, takeInput) {
 
 	var matchingFolders = [];
 	for (var i = 0; i < cutsFolders.length; i++) {
-		var folderName = cutsFolders[i].name;
-		var segments = folderName.split('-');
-		for (var j = 0; j < segments.length; j++) {
-			if (segments[j] === cut) {
-				matchingFolders.push(cutsFolders[i]);
-				break;
-			}
+		var folderName = cutsFolders[i].name.toLowerCase();
+		var cutSearch = cutInput.text.toLowerCase();
+
+		// Check if cutSearch is a substring of folderName
+		if (folderName.indexOf(cutSearch) !== -1) {
+			matchingFolders.push(cutsFolders[i]);
 		}
 	}
 

@@ -1,19 +1,34 @@
 function readDropboxJSON(file) {
-	if (!file.exists) return null;
+	if (file.exists === true) {
+		var currentLine;
+		var jsonStuff = [];
+		file.open('r');
+		while (!file.eof) {
+			currentLine = file.readln();
+			jsonStuff.push(currentLine);
+		}
+		file.close();
 
-	var jsonData = '';
-	file.open('r');
-	while (!file.eof) jsonData += file.readln() + '\n';
-	file.close();
+		jsonStuff = jsonStuff.join('');
+		var parsedJson;
 
-	try {
-		var parsed = JSON.parse(jsonData);
-		return parsed.business && parsed.business.path
-			? parsed.business.path
-			: null;
-	} catch (e) {
-		return null;
+		try {
+			parsedJson = JSON.parse(jsonStuff);
+		} catch (e) {
+			alert('Dropbox JSON is invalid: ' + e.message);
+			return false;
+		}
+
+		if (parsedJson.business && parsedJson.business.path) {
+			return parsedJson.business.path;
+		} else if (parsedJson.personal && parsedJson.personal.path) {
+			return parsedJson.personal.path;
+		} else {
+			alert("You don't have a Dropbox account linked in this JSON!");
+			return false;
+		}
 	}
+	return false;
 }
 
 function getDropboxInfoPaths() {

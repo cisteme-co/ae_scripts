@@ -831,6 +831,33 @@ var Alerts = (function () {
 		alert(msg);
 	}
 
+	function alertLatestCellImported() {
+		var lang = getLanguage();
+		var msg = '';
+
+		switch (lang) {
+			case 'japanese':
+			case 'ja':
+				msg = '最新のセルバージョンはすでにインポートされています。';
+				break;
+			case 'french':
+			case 'fr':
+				msg = 'La dernière version du cell est déjà importée.';
+				break;
+			case 'german':
+			case 'de':
+				msg = 'Die neueste Cell-Version wurde bereits importiert.';
+				break;
+			case 'spanish':
+			case 'es':
+				msg = 'La última versión de cel ya está importada.';
+				break;
+			default:
+				msg = 'Latest cell version already imported.';
+		}
+		alert(msg);
+	}
+
 	// ──────────────
 	// Alert: Latest Background Already Imported
 	// ──────────────
@@ -1272,6 +1299,7 @@ var Alerts = (function () {
 	// Public API
 	// ──────────────
 	return {
+		alertLatestCellImported: alertLatestCellImported,
 		alertNoLayerSelected: alertNoLayerSelected,
 		alertNoCompSelected: alertNoCompSelected,
 		alertMissingPlugin: alertMissingPlugin,
