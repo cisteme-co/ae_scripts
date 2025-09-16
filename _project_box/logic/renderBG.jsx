@@ -66,6 +66,49 @@ function renderBG() {
 			}
 			if (rqOK == true) break;
 		}
+
+		// Loop through render queue items
+		for (var i = 1; i <= rq.numItems; i++) {
+			var item = rq.item(i);
+
+			if (item.numOutputModules > 0) {
+				for (var j = 1; j <= item.numOutputModules; j++) {
+					var om = item.outputModule(j);
+					var renderFile = om.file;
+
+					if (renderFile) {
+						var ext = renderFile.name.split('.').pop().toLowerCase();
+						var outputFolder;
+
+						if (ext === 'mp4') {
+							// Go 5 levels up from project file to reach 'to_send'
+							var baseFolder = getNthParentFolders(app.project.file, 5);
+							outputFolder = new Folder(
+								baseFolder.fsName + '/to_send/撮影/check'
+							);
+						} else if (ext === 'mov') {
+							// Go 3 levels up from project file to reach 'compositing/01'
+							var baseFolder = getNthParentFolders(app.project.file, 2);
+							outputFolder = new Folder(
+								baseFolder.fsName + '/renders/' + getTodayYYYYMMDD()
+							);
+						} else {
+							outputFolder = renderFile.parent;
+						}
+
+						// Make sure the folder exists
+						if (!outputFolder.exists) outputFolder.create();
+
+						// Set output file path: same name as comp, same extension
+						var compName = item.comp.name;
+						var newFilePath = new File(
+							outputFolder.fsName + '/' + compName + '.' + ext
+						);
+						om.file = newFilePath;
+					}
+				}
+			}
+		}
 	}
 	if (rqOK == false) {
 		alertNoValidRenderQueue();
@@ -115,4 +158,27 @@ function renderBG() {
 		system.callSystem('chmod 755 ' + wq(shellCmdFile.fullName));
 	}
 	if (shellCmdFile.exists == true) shellCmdFile.execute();
+}
+
+function getNthParentFolders(startFileOrFolder, n) {
+	var folder =
+		startFileOrFolder instanceof Folder
+			? startFileOrFolder
+			: startFileOrFolder.parent;
+	for (var i = 0; i < n; i++) {
+		if (folder && folder.parent != null) {
+			folder = folder.parent;
+		} else {
+			break;
+		}
+	}
+	return folder;
+}
+
+function getTodayYYYYMMDD() {
+	var today = new Date();
+	var yyyy = today.getFullYear();
+	var mm = ('0' + (today.getMonth() + 1)).slice(-2);
+	var dd = ('0' + today.getDate()).slice(-2);
+	return '' + yyyy + mm + dd;
 }
