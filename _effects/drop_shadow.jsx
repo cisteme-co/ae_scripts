@@ -49,9 +49,9 @@ if (!isValid(app.project.activeItem)) {
 			Controls.addColorChange(layer, 'Color', [0, 0, 0]);
 			var blendDropdown = Controls.addDropdown(layer, 'Blend Mode', 2);
 			Controls.setDropdownItems(blendDropdown, blendModeNames);
-			Controls.addSlider(layer, 'Opacity', 50);
-			Controls.addAngle(layer, 'Angle', 135);
-			Controls.addSlider(layer, 'Distance', 10);
+			Controls.addSlider(layer, 'Opacity', 25);
+			Controls.addAngle(layer, 'Angle', 0);
+			Controls.addSlider(layer, 'Distance', 5);
 			Controls.addSlider(layer, 'Choke', 0);
 			Controls.addSlider(layer, 'Size', 0);
 
