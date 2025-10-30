@@ -85,23 +85,15 @@ function isLatestDataAlreadyImported(baseName) {
 	var binData = findOrCreateBin('_data', binPaint);
 
 	baseName = baseName.toLowerCase();
-	var matches = [];
 
 	for (var i = 1; i <= binData.numItems; i++) {
 		var item = binData.item(i);
 		if (item instanceof FootageItem && item.file instanceof File) {
-			var name = item.file.name.toLowerCase();
-			if (name.indexOf(baseName) === 0) matches.push(name);
+			if (item.file.fsName.toLowerCase().indexOf(baseName) !== -1) return true;
 		}
 	}
 
-	if (matches.length === 0) return false;
-
-	matches.sort(function (a, b) {
-		return a < b ? 1 : -1;
-	}); // reverse alphabetical
-	var latestImported = matches[0];
-	return latestImported.indexOf(baseName) === 0;
+	return false;
 }
 
 function replaceCellAssets(episodeFolder, baseName, cut) {
@@ -237,12 +229,21 @@ function setupBins() {
 
 function replaceFootageInComps() {
 	var bin2D = findOrCreateBin('2D');
-	var binData = findOrCreateBin('_data', findOrCreateBin('paint', bin2D));
+	var binPaint = findOrCreateBin('paint', bin2D);
+	var binData = findOrCreateBin('_data', binPaint);
 	var binLo = findOrCreateBin('_lo', bin2D);
 
-	// Replace in [cell] folder comps
-	var cellFolder = getFolder('cell');
 	try {
+		// Replace in [cell] folder inside 2D > paint
+		var cellFolder = null;
+		for (var i = 1; i <= binPaint.numItems; i++) {
+			var it = binPaint.item(i);
+			if (it instanceof FolderItem && it.name.toLowerCase() === 'cell') {
+				cellFolder = it;
+				break;
+			}
+		}
+
 		if (cellFolder) {
 			for (var k = 1; k <= cellFolder.numItems; k++) {
 				var comp = cellFolder.item(k);
@@ -252,9 +253,9 @@ function replaceFootageInComps() {
 			}
 		}
 
-		// Replace in all _work comps
-		for (var m = 1; m <= app.project.numItems; m++) {
-			var it = app.project.item(m);
+		// Replace in _work comps only if they are inside 2D > paint
+		for (var i = 1; i <= binPaint.numItems; i++) {
+			var it = binPaint.item(i);
 			if (it instanceof CompItem && /^_work/i.test(it.name)) {
 				replaceInComp(it, binData, binLo);
 			}

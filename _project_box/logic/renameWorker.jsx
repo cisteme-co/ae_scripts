@@ -8,6 +8,14 @@ function renameWorker(workerName) {
 		return;
 	}
 
+	if (outputFolder.parentFolder) {
+		alert(
+			"Skipping 'output' folder because it is nested inside another folder."
+		);
+		app.endUndoGroup();
+		return;
+	}
+
 	for (var i = 1; i <= app.project.numItems; i++) {
 		var item = app.project.item(i);
 

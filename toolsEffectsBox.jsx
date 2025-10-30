@@ -22,38 +22,59 @@
 						resizeable: true,
 				  });
 
+		// Window layout
+		win.orientation = 'column';
 		win.alignChildren = 'fill';
 		win.spacing = 4;
+
+		// Optional: minimum window size
+		win.minimumSize = [300, 250];
 
 		var scriptPath = File($.fileName).path;
 		var effectsPath = scriptPath + '/_effects';
 		var toolsPath = scriptPath + '/_tools';
 
-		var tabPanel = win.add('tabbedpanel');
+		// ────────────────────────────────────────────────
+		// TAB PANEL AREA (fills all space above buttons)
+		// ────────────────────────────────────────────────
+		var tabContainer = win.add('group');
+		tabContainer.orientation = 'stack';
+		tabContainer.alignChildren = 'fill';
+		tabContainer.alignment = ['fill', 'fill']; // Fill both width & height
+
+		var tabPanel = tabContainer.add('tabbedpanel');
 		tabPanel.borderStyle = 'none';
+		tabPanel.alignment = ['fill', 'fill']; // Stretch fully
+		tabPanel.minimumSize = [200, 150]; // Don’t collapse too small
 
 		// Effects tab
 		var effectsTab = tabPanel.add('tab', undefined, 'Effects');
 		effectsTab.alignChildren = 'fill';
+
 		var effectsList = effectsTab.add('listbox', undefined, [], {
 			multiselect: false,
 		});
-		effectsList.preferredSize = [100, 400];
+		effectsList.alignment = ['fill', 'fill'];
+		effectsList.minimumSize = [200, 150]; // Height grows, width grows
 		populateList(effectsList, getFiles(effectsPath));
 
 		// Tools tab
 		var toolsTab = tabPanel.add('tab', undefined, 'Tools');
 		toolsTab.alignChildren = 'fill';
+
 		var toolsList = toolsTab.add('listbox', undefined, [], {
 			multiselect: false,
 		});
-		toolsList.preferredSize = [100, 400];
+		toolsList.alignment = ['fill', 'fill'];
+		toolsList.minimumSize = [200, 150];
 		populateList(toolsList, getFiles(toolsPath));
 
-		// Apply button
+		// ────────────────────────────────────────────────
+		// FIXED BOTTOM BUTTON BAR (no vertical expansion)
+		// ────────────────────────────────────────────────
 		var btnGrp = win.add('group');
-		btnGrp.alignment = 'center';
 		btnGrp.orientation = 'row';
+		btnGrp.alignment = ['center', 'bottom']; // sticks to bottom, fills width
 		var applyBtn = btnGrp.add('button', undefined, 'Apply');
 		applyBtn.onClick = function () {
 			var activeTab = tabPanel.selection;
@@ -104,7 +125,7 @@
 		for (var i = 0; i < files.length; i++) {
 			var name = files[i].name.replace(/_/g, ' ').replace(/\.(jsx|ffx)$/i, '');
 
-			var words = name.split(' ');
+			var words = decodeURI(name).split(' ');
 			var capitalizedWords = [];
 
 			for (var j = 0; j < words.length; j++) {

@@ -270,11 +270,24 @@ function buildUI(thisObj) {
 	// Editable worker name field
 	var workerInput = workerGroup.add('edittext', undefined, savedWorker);
 	workerInput.characters = 10;
-	workerInput.onChange = function () {
-		// Save and apply the worker name change
-		app.settings.saveSetting(section, workerKey, workerInput.text);
-		renameWorker(workerInput.text);
+
+	// Run on Enter OR on blur
+	workerInput.addEventListener('keydown', function (k) {
+		if (k.keyName === 'Enter') {
+			k.preventDefault();
+			applyWorkerChange();
+		}
+	});
+
+	workerInput.onBlur = function () {
+		applyWorkerChange();
 	};
+
+	function applyWorkerChange() {
+		var value = workerInput.text;
+		app.settings.saveSetting(section, workerKey, value);
+		renameWorker(value);
+	}
 
 	// Spacer panel for layout
 	secondRow.add('panel', [100, 0, 103, 20]);
@@ -339,9 +352,20 @@ function buildUI(thisObj) {
 	// Retake input (text field)
 	var retakeInput = secondRow.add('edittext', undefined, T('retake'));
 	retakeInput.characters = 28;
+
+	// Fire when text really changes
 	retakeInput.onChange = function () {
-		retake(retakeInput.text);
+		applyRetake();
 	};
+
+	// Also fire when user presses Enter (even if no change)
+	retakeInput.addEventListener('keydown', function (k) {
+		if (k.keyName === 'Enter') applyRetake();
+	});
+
+	function applyRetake() {
+		retake(retakeInput.text);
+	}
 
 	// Assign button click handlers for import and render
 	importCellsBtn.onClick = function () {

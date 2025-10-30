@@ -95,23 +95,15 @@ function isLatestDataAlreadyImported(baseName) {
 	var binData = findOrCreateBin('_data', binPaint);
 
 	baseName = baseName.toLowerCase();
-	var matches = [];
 
 	for (var i = 1; i <= binData.numItems; i++) {
 		var item = binData.item(i);
 		if (item instanceof FootageItem && item.file instanceof File) {
-			var name = item.file.name.toLowerCase();
-			if (name.indexOf(baseName) === 0) matches.push(name);
+			if (item.file.fsName.toLowerCase().indexOf(baseName) !== -1) return true;
 		}
 	}
 
-	if (matches.length === 0) return false;
-
-	matches.sort(function (a, b) {
-		return a < b ? 1 : -1;
-	}); // reverse alphabetical
-	var latestImported = matches[0];
-	return latestImported.indexOf(baseName) === 0;
+	return false;
 }
 
 // ────────────────────────────────────────────────
