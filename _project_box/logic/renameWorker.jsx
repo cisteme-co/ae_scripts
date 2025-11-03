@@ -8,7 +8,7 @@ function renameWorker(workerName) {
 		return;
 	}
 
-	if (outputFolder.parentFolder) {
+	if (outputFolder.parentFolder.name != 'Root') {
 		alert(
 			"Skipping 'output' folder because it is nested inside another folder."
 		);

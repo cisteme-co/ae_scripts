@@ -64,7 +64,7 @@ function fileReplace() {
 	// ────────────── Begin Undo Group ──────────────
 	app.beginUndoGroup('Replace Import Cell');
 
-	if (isLatestDataAlreadyImported(baseName)) {
+	if (isLatestDataAlreadyImported(baseName, episodeFolder)) {
 		alert('✅ Latest version already imported for: ' + baseName);
 		app.endUndoGroup();
 		return;
@@ -79,19 +79,44 @@ function fileReplace() {
 // Helpers
 // ============================================================
 
-function isLatestDataAlreadyImported(baseName) {
+function isLatestDataAlreadyImported(baseName, episodeFolder) {
 	var bin2D = findOrCreateBin('2D');
 	var binPaint = findOrCreateBin('paint', bin2D);
 	var binData = findOrCreateBin('_data', binPaint);
 
 	baseName = baseName.toLowerCase();
+	var cutFolders = [];
+
+	for (var i = 0; i < episodeFolder.getFiles().length; i++) {
+		var f = episodeFolder.getFiles()[i];
+		if (f.name.toLowerCase().indexOf(baseName) !== -1) {
+			cutFolders.push(f);
+		}
+	}
+
+	cutFolders.sort(function (a, b) {
+		var an = a.name.toLowerCase();
+		var bn = b.name.toLowerCase();
+		if (an < bn) return 1;
+		if (an > bn) return -1;
+		return 0;
+	});
+
+	var cutFolder = cutFolders[0];
 
 	for (var i = 1; i <= binData.numItems; i++) {
 		var item = binData.item(i);
 		if (item instanceof FootageItem && item.file instanceof File) {
-			if (item.file.fsName.toLowerCase().indexOf(baseName) !== -1) return true;
+			if (
+				item.file.fsName
+					.toLowerCase()
+					.indexOf(cutFolder.fsName.toLowerCase()) != -1
+			)
+				return true;
 		}
 	}
+
+	alert(cutFolder.fsName + ' has not been imported yet.');
 
 	return false;
 }

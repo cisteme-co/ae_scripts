@@ -26,7 +26,6 @@
 	var project = fileNameSplit[0];
 	var episode = fileNameSplit[1];
 	var cut = fileNameSplit[2];
-	var baseName = [project, episode, cut].join('_').toLowerCase();
 
 	// ──────────────
 	// Locate project folder 5 levels up
