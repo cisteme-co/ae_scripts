@@ -43,7 +43,8 @@ if (typeof isValid === 'function' && isValid(app.project.activeItem)) {
 		Controls.addSlider(nullLayer, 'Resolution (in DPI)', 72);
 		Controls.addSlider(nullLayer, 'Scale in %', 100);
 		Controls.addSlider(nullLayer, 'Frequency', 1);
-		Controls.addSlider(nullLayer, 'Amplitude (in mm)', 5);
+		Controls.addSlider(nullLayer, 'Amplitude X (in mm)', 5);
+		Controls.addSlider(nullLayer, 'Amplitude Y (in mm)', 5);
 		Controls.addSlider(nullLayer, 'Noise Frequency', 5);
 		Controls.addSlider(nullLayer, 'Noise Amplitude', 5);
 		Controls.addSlider(nullLayer, 'Phase', 0);
@@ -57,12 +58,14 @@ if (typeof isValid === 'function' && isValid(app.project.activeItem)) {
 			'if(intDPI==0){intDPI=Math.round(128*(scale/100) )}\n' +
 			'mySpeed = intDPI/25.4;\n' +
 			"freq=effect('Frequency')('ADBE Slider Control-0001');\n" +
-			"amp=effect('Amplitude (in mm)')('ADBE Slider Control-0001');\n" +
+			"ampX=effect('Amplitude X (in mm)')('ADBE Slider Control-0001');\n" +
+			"ampY=effect('Amplitude Y (in mm)')('ADBE Slider Control-0001');\n" +
 			"octaves =effect('Noise Frequency')('ADBE Slider Control-0001');\n" +
 			"amp_mult=effect('Noise Amplitude')('ADBE Slider Control-0001')/20;\n" +
 			"t=time+framesToTime(effect('Phase')('ADBE Slider Control-0001'),1/thisComp.frameDuration);\n" +
-			'amp=amp*mySpeed ;\n' +
-			'wiggle(freq, amp, octaves , amp_mult , t)';
+			'x = wiggle(freq, ampX, octaves, amp_mult, t)[0]; ;\n' +
+			'y = wiggle(freq, ampY, octaves, amp_mult, t)[1]; ;\n' +
+			'value + [x - value[0], y - value[1]];';
 	}
 
 	app.endUndoGroup();
