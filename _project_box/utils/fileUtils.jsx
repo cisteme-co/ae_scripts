@@ -96,6 +96,25 @@ function getWorkFolder() {
 	}
 }
 
+function getProjectCodeName(projectFolder) {
+	var infoFile = new File(projectFolder.path + '/' + projectFolder.name + '/info.json');
+	if (infoFile.exists) {
+		infoFile.open('r');
+		var content = infoFile.read();
+		infoFile.close();
+		try {
+			var info = JSON.parse(content);
+			if (info && info.codeName) {
+				return info.codeName;
+			}
+		} catch (e) {
+			// Fallback if JSON is invalid
+		}
+	}
+	// Fallback: extract first part of folder name or default to 'ws'
+	return 'ws';
+}
+
 function getProjects() {
 	var workFolders = Folder(getWorkFolder()).getFiles();
 	var projects = [];
@@ -103,11 +122,23 @@ function getProjects() {
 	for (var i = 0; i < workFolders.length; i++) {
 		var folder = workFolders[i];
 		if (folder.name[0] != '_') {
-			if (
-				Folder(folder.path + '/' + folder.name + '/production/compositing/')
-					.exists
-			) {
-				projects.push(folder);
+			var compPath =
+				folder.path + '/' + folder.name + '/production/compositing/';
+			var lightPath =
+				folder.path + '/' + folder.name + '/production/lighting/';
+
+			if (Folder(compPath).exists) {
+				projects.push({
+					name: folder.name,
+					folder: folder,
+					mode: 'compositing',
+				});
+			} else if (Folder(lightPath).exists) {
+				projects.push({
+					name: folder.name,
+					folder: folder,
+					mode: 'lighting',
+				});
 			}
 		}
 	}
@@ -118,16 +149,25 @@ function getEpisodes(index) {
 	var projectsFolders = getProjects();
 	var episodes = [];
 
-	for (var i = 0; i < projectsFolders.length; i++) {
+	if (index >= 0 && index < projectsFolders.length) {
+		var projectObj = projectsFolders[index];
 		var path =
-			projectsFolders[i].path +
+			projectObj.folder.path +
 			'/' +
-			projectsFolders[i].name +
-			'/production/compositing/';
-		var projectEpisodes = Folder(path).getFiles();
-		if (i == index) {
+			projectObj.folder.name +
+			'/production/' +
+			projectObj.mode +
+			'/';
+
+		if (Folder(path).exists) {
+			var projectEpisodes = Folder(path).getFiles();
 			for (var e = 0; e < projectEpisodes.length; e++) {
-				episodes.push(projectEpisodes[e]);
+				if (
+					projectEpisodes[e] instanceof Folder &&
+					projectEpisodes[e].name[0] !== '_'
+				) {
+					episodes.push(projectEpisodes[e]);
+				}
 			}
 		}
 	}

@@ -51,9 +51,11 @@ function renderBG() {
 
 	var rq = app.project.renderQueue;
 	var rqOK = false;
+	var compNames = [];
 	if (rq.numItems > 0) {
 		for (var i = 1; i <= rq.numItems; i++) {
 			if (rq.item(i).status == RQItemStatus.QUEUED) {
+				compNames.push(rq.item(i).comp.name);
 				if (rq.item(i).numOutputModules > 0) {
 					for (var j = 1; j <= rq.item(i).numOutputModules; j++) {
 						if (rq.item(i).outputModule(j).file != null)
@@ -117,7 +119,8 @@ function renderBG() {
 
 	var proOp = '/low';
 	var af = app.project.file;
-	var tmpAep = new File(Folder.temp.fullName + '/' + 'aerender_temp_.aep');
+	var timestamp = new Date().getTime();
+	var tmpAep = new File(Folder.temp.fullName + '/' + 'aerender_temp_' + timestamp + '.aep');
 
 	app.project.save(tmpAep);
 	app.project.save(af);
@@ -128,18 +131,20 @@ function renderBG() {
 	if (is_win_os) {
 		//windows batchファイル
 		aer = new File(Folder.appPackage.fullName + '/aerender.exe');
-		shellCmdFile = new File(Folder.temp.fullName + '/aerender.bat');
+		shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.bat');
 		cmd = '@echo off\r\n';
 		cmd += 'start "" /b ' + proOp + ' /wait ';
 		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON\r\n';
 		cmd += 'del ' + wq(tmpAep.fsName) + '\r\n';
+		cmd += 'del ' + wq(shellCmdFile.fsName) + '\r\n';
 	} else {
 		// Mac shell script
 		aer = new File(Folder.appPackage.parent.fullName + '/aerender');
-		shellCmdFile = new File(Folder.temp.fullName + '/aerender.command');
+		shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.command');
 		cmd = '#!/bin/sh\r\n';
 		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON\r\n';
 		cmd += 'rm -f ' + wq(tmpAep.fsName) + '\r\n';
+		cmd += 'rm -f ' + wq(shellCmdFile.fsName) + '\r\n';
 	}
 	if (shellCmdFile.exists == true) shellCmdFile.remove();
 	if (shellCmdFile.open('w')) {
@@ -157,7 +162,19 @@ function renderBG() {
 	if (is_win_os == false) {
 		system.callSystem('chmod 755 ' + wq(shellCmdFile.fullName));
 	}
-	if (shellCmdFile.exists == true) shellCmdFile.execute();
+	if (shellCmdFile.exists == true) {
+		shellCmdFile.execute();
+
+		// Show the background render UI
+		var scriptFile = new File($.fileName);
+		var uiFile = new File(scriptFile.parent.parent.fsName + '/ui/renderBG_UI.jsx');
+		if (uiFile.exists) {
+			$.evalFile(uiFile);
+			if (typeof showRenderBG_UI === 'function') {
+				showRenderBG_UI(compNames, tmpAep.fsName);
+			}
+		}
+	}
 }
 
 function getNthParentFolders(startFileOrFolder, n) {

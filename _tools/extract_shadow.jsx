@@ -35,6 +35,44 @@ function t(key, replacements) {
 }
 
 // ────────────────────────────────────────────────
+// Helper functions for folder management
+// ────────────────────────────────────────────────
+function findOrCreateBin(name, parent) {
+	var items = parent ? parent.items : app.project.items;
+	for (var i = 1; i <= items.length; i++) {
+		if (items[i] instanceof FolderItem && items[i].name === name) {
+			return items[i];
+		}
+	}
+	return (parent ? parent.items : app.project.items).addFolder(name);
+}
+
+function getLightingFolders() {
+	var binSozai = null;
+	for (var i = 1; i <= app.project.numItems; i++) {
+		var item = app.project.item(i);
+		if (
+			item instanceof FolderItem &&
+			item.name === '01)_sozai' &&
+			item.parentFolder === app.project.rootFolder
+		) {
+			binSozai = item;
+			break;
+		}
+	}
+
+	if (binSozai) {
+		var bin03Cel = findOrCreateBin('03_Cel', binSozai);
+		return {
+			isLighting: true,
+			cell: findOrCreateBin('01_Cel', bin03Cel),
+			cellFX: findOrCreateBin('02_Cel_FX', bin03Cel),
+		};
+	}
+	return { isLighting: false };
+}
+
+// ────────────────────────────────────────────────
 // Gather selected items in project
 // ────────────────────────────────────────────────
 var mySelectedItems = [];
@@ -49,6 +87,8 @@ for (var i = 1; i <= app.project.numItems; i++) {
 // ────────────────────────────────────────────────
 if (mySelectedItems.length) {
 	app.beginUndoGroup('Extract Shadow');
+
+	var lightingFolders = getLightingFolders();
 
 	for (var i = 0; i < mySelectedItems.length; i++) {
 		var item = mySelectedItems[i];
@@ -84,7 +124,12 @@ if (mySelectedItems.length) {
 				1 / item.frameDuration
 			);
 			cellComp.layers.add(item);
-			cellComp.parentFolder = getFolder('cell');
+
+			if (lightingFolders.isLighting) {
+				cellComp.parentFolder = lightingFolders.cell;
+			} else {
+				cellComp.parentFolder = getFolder('cell');
+			}
 		}
 
 		// Create shadow composition
@@ -97,7 +142,12 @@ if (mySelectedItems.length) {
 			1 / item.frameDuration
 		);
 		shadComp.layers.add(item);
-		shadComp.parentFolder = getFolder('cell');
+
+		if (lightingFolders.isLighting) {
+			shadComp.parentFolder = lightingFolders.cell;
+		} else {
+			shadComp.parentFolder = getFolder('cell');
+		}
 
 		// ────────────────────────────────────────────────
 		// Add Effects to layers in cellComp

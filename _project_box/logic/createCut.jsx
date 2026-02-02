@@ -10,14 +10,18 @@ function createCut(
 	takeCodes,
 	seconds,
 	frames,
-	workerInput
+	workerInput,
+	mode
 ) {
 	// ──────────────
 	// Setup paths and variables
 	// ──────────────
-	var projectFolder = getProjects()[project.index];
+	mode = mode || 'compositing';
+	var projectObj = getProjects()[project.index];
+	var projectFolder = projectObj.folder;
+	var codeName = getProjectCodeName(projectFolder);
 	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
-	var production = projectWorkFolder + '/production/compositing/';
+	var production = projectWorkFolder + '/production/' + mode + '/';
 	var check = projectWorkFolder + '/to_send/撮影/check';
 	var templateFiles = projectWorkFolder + '/assets/templates/compositing';
 
@@ -40,17 +44,25 @@ function createCut(
 	// Find matching template file based on take code
 	// ──────────────
 	var files = Folder(templateFiles).getFiles('*.aep');
+	var targetTakeCode = takeCodes[take.index];
+
 	for (var i = 0; i < files.length; i++) {
 		var templateFile = files[i];
-		try {
-			var takeCodeFromFile = templateFile.name.split('_')[3].split('.')[0];
-			if (takeCodeFromFile === takeCodes[take.index]) {
+		if (mode === 'lighting') {
+			if (decodeURI(templateFile.name) === decodeURI(targetTakeCode)) {
 				thisTemplate = templateFile;
 				break;
 			}
-		} catch (e) {
-			alert(e);
-			// Ignore malformed filenames
+		} else {
+			try {
+				var takeCodeFromFile = templateFile.name.split('_')[3].split('.')[0];
+				if (takeCodeFromFile === targetTakeCode) {
+					thisTemplate = templateFile;
+					break;
+				}
+			} catch (e) {
+				// Ignore malformed filenames
+			}
 		}
 	}
 
@@ -67,8 +79,11 @@ function createCut(
 	// ──────────────
 	// Prepare output file path and check for existing cut
 	// ──────────────
-	var newFilePath = production + '/' + episode.text + '/cuts/' + allCuts;
+	var subFolder = mode === 'lighting' ? 'progress' : 'cuts';
+	var newFilePath =
+		production + '/' + episode.text + '/' + subFolder + '/' + allCuts;
 	var outputFileName = thisTemplate.name
+		.replace(/^[^\s_]+(?=_\d{2}_\d{3})/, codeName)
 		.replace('00', episode.text)
 		.replace('000', allCuts);
 	var outputFile = new File(newFilePath + '/' + outputFileName);
@@ -131,6 +146,7 @@ function createCut(
 
 		var newRender = renderComp.duplicate();
 		newRender.name = renderComp.name
+			.replace(/[^_]+(?=_\d{2}_\d{3})/, codeName)
 			.replace('00', episode.text)
 			.replace('000', cut);
 		newRender.duration = bold + duration;

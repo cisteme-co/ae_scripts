@@ -6,11 +6,13 @@ function handleNewCut(
 	takes,
 	takesCodes,
 	workerInput,
-	takeInput
+	takeInput,
+	mode
 ) {
 	// ────────────────────────────────────────────────
 	// CONSTANTS AND SETTINGS KEYS
 	// ────────────────────────────────────────────────
+	mode = mode || 'compositing';
 	var section = 'ProjectsBoxPrefs';
 	var framerateKey = 'framerateSelection';
 	var takeKey = 'takeSelection';
@@ -31,14 +33,12 @@ function handleNewCut(
 	// RESOLVE PATHS AND CHECK REQUIRED FOLDERS
 	// ────────────────────────────────────────────────
 	var rootFolder = File($.fileName).parent.parent.path;
-	var projectFolder = decodeURI(getProjects()[selectedIndex]);
-	if (!projectFolder) {
-		alert('Could not retrieve the project path');
-		return;
-	}
+	var projectObj = getProjects()[selectedIndex];
+	var projectFolder = projectObj.folder;
+	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
 
 	var templateFolder = new Folder(
-		projectFolder + '/assets/templates/compositing'
+		projectWorkFolder + '/assets/templates/compositing'
 	);
 	if (!templateFolder.exists) {
 		alert('Template folder not found:\n' + templateFolder.fsName);
@@ -48,9 +48,19 @@ function handleNewCut(
 	// ────────────────────────────────────────────────
 	// FILTER AVAILABLE TAKES BASED ON TEMPLATE FILES
 	// ────────────────────────────────────────────────
-	var filtered = getAvailableTakes(takes, takesCodes, templateFolder);
-	takes = filtered[0];
-	takesCodes = filtered[1];
+	if (mode === 'lighting') {
+		var templateFiles = templateFolder.getFiles('*.aep');
+		takes = [];
+		takesCodes = [];
+		for (var i = 0; i < templateFiles.length; i++) {
+			takes.push(templateFiles[i].name);
+			takesCodes.push(templateFiles[i].name);
+		}
+	} else {
+		var filtered = getAvailableTakes(takes, takesCodes, templateFolder);
+		takes = filtered[0];
+		takesCodes = filtered[1];
+	}
 
 	// ────────────────────────────────────────────────
 	// LOAD SAVED SETTINGS WITH DEFAULT FALLBACKS
@@ -85,7 +95,14 @@ function handleNewCut(
 	imageGroup.spacing = 0;
 	imageGroup.alignChildren = ['center', 'center'];
 
-	var imageFile = File(projectFolder + '/assets/poster/poster.jpg');
+	var imageFile = File(projectWorkFolder + '/assets/poster/poster.jpg');
+	if (!imageFile.exists) {
+		imageFile = File(projectWorkFolder + '/assets/poster/poster.jpeg');
+	}
+	if (!imageFile.exists) {
+		imageFile = File(projectWorkFolder + '/assets/poster/poster.png');
+	}
+
 	if (!imageFile.exists) {
 		imageFile = File(
 			rootFolder + '/_project_box/assets/poster_placeholder.jpg'
@@ -169,7 +186,7 @@ function handleNewCut(
 		);
 	};
 
-	parametersGroup.add('statictext', undefined, 'Take');
+	parametersGroup.add('statictext', undefined, mode === 'lighting' ? 'Template' : 'Take');
 	var takesDrop = parametersGroup.add('dropdownlist', undefined, takes);
 	takesDrop.selection = Math.min(savedTakeIndex, takes.length - 1);
 	takesDrop.onChange = function () {
@@ -198,20 +215,46 @@ function handleNewCut(
 			frames.push(maingroup.children[n].framesInput.text);
 		}
 
-		createCut(
-			projectDrop.selection,
-			episode.selection,
-			cuts,
-			framerate,
-			takesDrop.selection,
-			takesCodes,
-			seconds,
-			frames,
-			workerInput
-		);
+		if (mode === 'lighting') {
+			createLightingCut(
+				{ index: selectedIndex },
+				episode.selection,
+				cuts,
+				framerate,
+				takesDrop.selection,
+				takesCodes,
+				seconds,
+				frames,
+				workerInput,
+				mode
+			);
+		} else {
+			createCut(
+				{ index: selectedIndex },
+				episode.selection,
+				cuts,
+				framerate,
+				takesDrop.selection,
+				takesCodes,
+				seconds,
+				frames,
+				workerInput,
+				mode
+			);
+		}
 
 		if (takeInput && takesDrop.selection) {
-			takeInput.text = takesCodes[takesDrop.selection.index];
+			var selectedCode = takesCodes[takesDrop.selection.index];
+			var codeSplit = selectedCode.split('_');
+			var lastPart = codeSplit[codeSplit.length - 1].split('.')[0];
+			
+			// If it's something like "3d_t01", we only want "t01"
+			var takeMatch = lastPart.match(/t\d+$/i);
+			if (takeMatch) {
+				takeInput.text = takeMatch[0].toLowerCase();
+			} else {
+				takeInput.text = lastPart.toLowerCase();
+			}
 		}
 
 		win.close();

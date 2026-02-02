@@ -18,7 +18,7 @@ function buildUI(thisObj) {
 	};
 
 	// Supported framerates for reference
-	var framerates = [8, 12, 15, 23.976, 24, 29.97, 30];
+ 	var framerates = [8, 12, 15, 23.976, 24, 29.97, 30];
 	// Human-readable take names (in Japanese) mapped to take codes
 	function getLocalizedTakes() {
 		var locale = $.locale || 'en';
@@ -73,7 +73,7 @@ function buildUI(thisObj) {
 
 	// Dropdown to select Project
 	var projectsDrop = firstRow.add('dropdownlist', undefined, []);
-	projectsDrop.preferredSize.width = 100;
+	projectsDrop.preferredSize.width = 120;
 
 	// Dropdown to select Episode within the selected project
 	var episodeDrop = firstRow.add('dropdownlist', undefined, []);
@@ -96,6 +96,17 @@ function buildUI(thisObj) {
 	// Set the cut input text to the saved value
 	cutInput.text = savedCut;
 
+	function getMode() {
+		var projects = getProjects();
+		if (
+			projectsDrop.selection &&
+			projectsDrop.selection.index < projects.length
+		) {
+			return projects[projectsDrop.selection.index].mode;
+		}
+		return 'compositing';
+	}
+
 	// ───── Buttons Group: various action buttons ─────
 	var buttonGroup = firstRow.add('group');
 	buttonGroup.orientation = 'row';
@@ -117,7 +128,7 @@ function buildUI(thisObj) {
 		{ style: 'toolbutton' }
 	);
 	lastVersion.onClick = function () {
-		openFile(projectsDrop, episodeDrop, cutInput, takeInput);
+		openFile(projectsDrop, episodeDrop, cutInput, takeInput, getMode());
 	};
 
 	// Button to import animation cells
@@ -127,6 +138,9 @@ function buildUI(thisObj) {
 		File(iconsPath + 'folder-down.png'),
 		{ style: 'toolbutton' }
 	);
+	importCellsBtn.onClick = function () {
+		importCells(getMode());
+	};
 
 	// Button to import background images
 	var importBGBtm = buttonGroup.add(
@@ -135,6 +149,9 @@ function buildUI(thisObj) {
 		File(iconsPath + 'image-down.png'),
 		{ style: 'toolbutton' }
 	);
+	importBGBtm.onClick = function () {
+		importBG(getMode());
+	};
 
 	// Button to open timesheet-related tools
 	var timesheetBtn = buttonGroup.add(
@@ -330,11 +347,19 @@ function buildUI(thisObj) {
 		}
 
 		var prefix = prefixMatch[0];
-		var number = parseInt(numberMatch[0], 10);
+		var numberStr = numberMatch[0];
+		var number = parseInt(numberStr, 10);
 
 		// Increment take number
 		var newNumber = number + 1;
-		var newTake = prefix + newNumber;
+		var newNumberStr = newNumber.toString();
+
+		// Preserve zero-padding
+		while (newNumberStr.length < numberStr.length) {
+			newNumberStr = '0' + newNumberStr;
+		}
+
+		var newTake = prefix + newNumberStr;
 
 		// Update the input and trigger any associated logic
 		takeInput.text = newTake;
@@ -367,13 +392,7 @@ function buildUI(thisObj) {
 		retake(retakeInput.text);
 	}
 
-	// Assign button click handlers for import and render
-	importCellsBtn.onClick = function () {
-		importCells();
-	};
-	importBGBtm.onClick = function () {
-		importBG();
-	};
+	// Assign button click handlers for render
 	renderBtn.onClick = function () {
 		renderBG();
 	};
@@ -388,7 +407,8 @@ function buildUI(thisObj) {
 			takes,
 			takesCodes,
 			workerInput,
-			takeInput
+			takeInput,
+			getMode()
 		);
 	};
 
@@ -442,11 +462,13 @@ function buildUI(thisObj) {
 		);
 
 		// Save selected episode index
-		app.settings.saveSetting(
-			section,
-			keys.episode,
-			episodeDrop.selection.index.toString()
-		);
+		if (episodeDrop.selection) {
+			app.settings.saveSetting(
+				section,
+				keys.episode,
+				episodeDrop.selection.index.toString()
+			);
+		}
 	}
 
 	// Initial episodes update on UI build

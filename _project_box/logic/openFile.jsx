@@ -1,12 +1,16 @@
-function openFile(projects, episodes, cutInput, takeInput) {
+function openFile(projects, episodes, cutInput, takeInput, mode) {
 	// ───────────────────────────────────────────────
 	// 0. INITIAL SETUP & VALIDATION
 	// ───────────────────────────────────────────────
-	var projectFolder = getProjects()[projects.selection.index];
+	mode = mode || 'compositing';
+	var projectsList = getProjects();
+	var projectObj = projectsList[projects.selection.index];
+	var projectFolder = projectObj.folder;
 	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
-	var production = projectWorkFolder + '/production/compositing/';
+	var production = projectWorkFolder + '/production/' + mode + '/';
 	var episode = episodes.selection.text;
-	var cutsPath = production + '/' + episode + '/cuts/';
+	var subFolder = mode === 'lighting' ? 'progress' : 'cuts';
+	var cutsPath = production + '/' + episode + '/' + subFolder + '/';
 	var cut = cutInput.text;
 
 	var cutsFolder = new Folder(cutsPath);
@@ -141,9 +145,9 @@ function openFile(projects, episodes, cutInput, takeInput) {
 
 		// Update takeInput UI element with detected take suffix or fallback
 		if (takeInput) {
-			var fileNameNoExt = bestFile.name.replace(/\.[^\.]+$/, '');
-			var takeMatch = fileNameNoExt.match(/(c\d+|g\d+|3d_t\d+|t\d+|v0|v\d+)$/i);
-			takeInput.text = takeMatch ? takeMatch[0].toLowerCase() : '--';
+			var fileNameSplit = bestFile.name.split('_');
+			var lastPart = fileNameSplit[fileNameSplit.length - 1].split('.')[0];
+			takeInput.text = lastPart.toLowerCase();
 		}
 	} else {
 		Alerts.alertCouldNotDetermineBestFile();
