@@ -23,7 +23,8 @@ function importBG() {
 	var episode = info.episode;
 	var cut = info.cut;
 	var baseName = info.base;
-	var isLighting = app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
+	var isLighting =
+		app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
 
 	// Prepare search keys for BG files
 	// Handle variations like:
@@ -41,7 +42,9 @@ function importBG() {
 		var firstCut = cut.split('-')[0];
 		var firstBase = [info.project, episode, firstCut].join('_').toLowerCase();
 		searchKeys.push(firstBase); // ws_06_001
-		searchKeys.push((info.project + info.episode + '_' + firstCut).toLowerCase()); // ws06_001
+		searchKeys.push(
+			(info.project + info.episode + '_' + firstCut).toLowerCase(),
+		); // ws06_001
 		searchKeys.push(firstBase.replace(/_/g, '')); // ws06001
 	}
 
@@ -74,7 +77,7 @@ function importBG() {
 
 	// Find episode folder (e.g. orb01 for compositing, #01 for lighting)
 	var targetName = (project + episode).toLowerCase();
-	var lightingTargetName = ('#' + episode).toLowerCase();
+	var lightingTargetName = episode.toLowerCase();
 
 	var episodeFolders = bgFolder.getFiles(function (f) {
 		return f instanceof Folder;
@@ -84,7 +87,10 @@ function importBG() {
 	for (var i = 0; i < episodeFolders.length; i++) {
 		var folderName = episodeFolders[i].name.toLowerCase();
 		if (isLighting) {
-			if (folderName === lightingTargetName || folderName === episode.toLowerCase()) {
+			if (
+				folderName === lightingTargetName ||
+				folderName === episode.toLowerCase()
+			) {
 				episodeFolder = episodeFolders[i];
 				break;
 			}
@@ -97,7 +103,9 @@ function importBG() {
 	}
 
 	if (!episodeFolder) {
-		Alerts.alertEpisodeFolderNotFound(isLighting ? lightingTargetName : targetName);
+		Alerts.alertEpisodeFolderNotFound(
+			isLighting ? lightingTargetName : targetName,
+		);
 		return;
 	}
 

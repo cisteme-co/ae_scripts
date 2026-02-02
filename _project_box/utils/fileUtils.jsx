@@ -97,7 +97,9 @@ function getWorkFolder() {
 }
 
 function getProjectCodeName(projectFolder) {
-	var infoFile = new File(projectFolder.path + '/' + projectFolder.name + '/info.json');
+	var infoFile = new File(
+		projectFolder.path + '/' + projectFolder.name + '/info.json',
+	);
 	if (infoFile.exists) {
 		infoFile.open('r');
 		var content = infoFile.read();
@@ -111,8 +113,8 @@ function getProjectCodeName(projectFolder) {
 			// Fallback if JSON is invalid
 		}
 	}
-	// Fallback: extract first part of folder name or default to 'ws'
-	return 'ws';
+	// Fallback: extract first part of folder name or default to 'aaa'
+	return 'aaa';
 }
 
 function getProjects() {
@@ -124,8 +126,7 @@ function getProjects() {
 		if (folder.name[0] != '_') {
 			var compPath =
 				folder.path + '/' + folder.name + '/production/compositing/';
-			var lightPath =
-				folder.path + '/' + folder.name + '/production/lighting/';
+			var lightPath = folder.path + '/' + folder.name + '/production/lighting/';
 
 			if (Folder(compPath).exists) {
 				projects.push({
@@ -194,7 +195,7 @@ function extractTakeCode(filename) {
 		if (match) {
 			// Return the full match (e.g., v01) but without the leading underscore if it was matched
 			var code = match[0].replace(/^_/, '');
-			// Special case for _3d_t01 -> we want t01 if that was the intent, 
+			// Special case for _3d_t01 -> we want t01 if that was the intent,
 			// but usually the regexes above are ordered by priority.
 			if (code.indexOf('3d_') === 0) code = code.replace('3d_', '');
 			return code.toLowerCase();
