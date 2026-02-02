@@ -52,21 +52,41 @@ function renderBG() {
 	var rq = app.project.renderQueue;
 	var rqOK = false;
 	var compNames = [];
+	var totalFrames = 0;
 	if (rq.numItems > 0) {
 		for (var i = 1; i <= rq.numItems; i++) {
-			if (rq.item(i).status == RQItemStatus.QUEUED) {
-				compNames.push(rq.item(i).comp.name);
-				if (rq.item(i).numOutputModules > 0) {
-					for (var j = 1; j <= rq.item(i).numOutputModules; j++) {
-						if (rq.item(i).outputModule(j).file != null)
-							if (rq.item(i).outputModule(j).file.parent.exists == true) {
+			var item = rq.item(i);
+			if (item.status == RQItemStatus.QUEUED) {
+				compNames.push(item.comp.name);
+				
+				// Calculate frames for this item
+				// Use a more robust calculation for frame count based on frame indices
+				var frameDuration = item.comp.frameDuration;
+				var start = item.timeStart;
+				var end = item.timeEnd;
+				
+				// If timeEnd is 0 or same as start, fallback to work area or comp duration
+				if (end <= start) {
+					start = item.comp.workAreaStart;
+					end = start + item.comp.workAreaDuration;
+				}
+				
+				var itemFrames = Math.round(end / frameDuration) - Math.round(start / frameDuration);
+				if (itemFrames <= 0) itemFrames = 1; // Minimum 1 frame
+				
+				totalFrames += itemFrames;
+
+				if (item.numOutputModules > 0) {
+					for (var j = 1; j <= item.numOutputModules; j++) {
+						if (item.outputModule(j).file != null)
+							if (item.outputModule(j).file.parent.exists == true) {
 								rqOK = true;
 								break;
 							}
 					}
 				}
 			}
-			if (rqOK == true) break;
+			// if (rqOK == true) break; // We need to continue to count totalFrames
 		}
 
 		// Loop through render queue items
@@ -121,6 +141,7 @@ function renderBG() {
 	var af = app.project.file;
 	var timestamp = new Date().getTime();
 	var tmpAep = new File(Folder.temp.fullName + '/' + 'aerender_temp_' + timestamp + '.aep');
+	var logFile = new File(Folder.temp.fullName + '/' + 'aerender_log_' + timestamp + '.txt');
 
 	app.project.save(tmpAep);
 	app.project.save(af);
@@ -133,8 +154,10 @@ function renderBG() {
 		aer = new File(Folder.appPackage.fullName + '/aerender.exe');
 		shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.bat');
 		cmd = '@echo off\r\n';
-		cmd += 'start "" /b ' + proOp + ' /wait ';
-		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON\r\n';
+		// Use powershell to show output in console and write to log file simultaneously (mimic 'tee')
+		// We use single quotes for paths inside the PowerShell command to avoid quote escaping issues
+		var psCmd = "& { & '" + aer.fsName + "' -project '" + tmpAep.fsName + "' -sound ON 2>&1 | Tee-Object -FilePath '" + logFile.fsName + "' }";
+		cmd += 'start "" /b ' + proOp + ' /wait powershell -Command ' + wq(psCmd) + '\r\n';
 		cmd += 'del ' + wq(tmpAep.fsName) + '\r\n';
 		cmd += 'del ' + wq(shellCmdFile.fsName) + '\r\n';
 	} else {
@@ -142,7 +165,7 @@ function renderBG() {
 		aer = new File(Folder.appPackage.parent.fullName + '/aerender');
 		shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.command');
 		cmd = '#!/bin/sh\r\n';
-		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON\r\n';
+		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON 2>&1 | tee ' + wq(logFile.fsName) + '\r\n';
 		cmd += 'rm -f ' + wq(tmpAep.fsName) + '\r\n';
 		cmd += 'rm -f ' + wq(shellCmdFile.fsName) + '\r\n';
 	}
@@ -171,7 +194,7 @@ function renderBG() {
 		if (uiFile.exists) {
 			$.evalFile(uiFile);
 			if (typeof showRenderBG_UI === 'function') {
-				showRenderBG_UI(compNames, tmpAep.fsName);
+				showRenderBG_UI(compNames, tmpAep.fsName, totalFrames, logFile.fsName);
 			}
 		}
 	}

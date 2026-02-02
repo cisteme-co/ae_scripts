@@ -1,4 +1,4 @@
-function showRenderBG_UI(compNames, tempFilePath) {
+function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
     if (!compNames || compNames.length === 0) return;
 
     var is_win_os = $.os.toLowerCase().indexOf('windows') >= 0;
@@ -14,6 +14,8 @@ function showRenderBG_UI(compNames, tempFilePath) {
             ja: 'すべての背景レンダリングを停止してもよろしいですか？' 
         },
         cancelled: { en: 'Render cancelled.', ja: 'レンダーが中止されました。' },
+        rendering: { en: 'Rendering... ', ja: 'レンダリング中... ' },
+        finished: { en: 'Finished!', ja: '完了！' },
         error: { en: 'Error cancelling render: ', ja: 'レンダー中止中にエラーが発生しました: ' }
     };
 
@@ -79,6 +81,11 @@ function showRenderBG_UI(compNames, tempFilePath) {
                     var f = new File(tempFilePath);
                     if (f.exists) f.remove();
                 }
+                // Cleanup log file if it exists
+                if (logFilePath) {
+                    var lf = new File(logFilePath);
+                    if (lf.exists) lf.remove();
+                }
 
                 alert(t('cancelled'));
                 win.close();
@@ -90,9 +97,52 @@ function showRenderBG_UI(compNames, tempFilePath) {
 
     // Auto-close check
     function checkStatus() {
-        // Increment progress bar slightly for visual feedback (fake progress)
-        if (progressBar.value < 95) {
-            progressBar.value += 1;
+        var framesDone = 0;
+        
+        // Try to read log file to get actual progress
+        if (logFilePath) {
+            var lf = new File(logFilePath);
+            if (lf.exists) {
+                // On Windows, PowerShell's Tee-Object often writes in UTF-16LE
+                // We'll try to detect or just set it to handle common cases
+                if (is_win_os) lf.encoding = 'UTF-16'; 
+                
+                if (lf.open('r')) {
+                    try {
+                        var content = lf.read();
+                        lf.close();
+                        
+                        // If content is empty with UTF-16, try default encoding (for Mac/Linux or different PS versions)
+                        if (!content || content.length === 0) {
+                            lf.encoding = 'UTF-8';
+                            if (lf.open('r')) {
+                                content = lf.read();
+                                lf.close();
+                            }
+                        }
+
+                        // Count lines that indicate a frame was rendered.
+                        // aerender outputs: PROGRESS:  0:00:00:00 (1): 1 Frames
+                        var matches = content.match(/^PROGRESS:.*?\(\d+\)/gm);
+                        if (matches) {
+                            framesDone = matches.length;
+                        }
+                    } catch (e) {
+                        // Ignore read errors
+                    }
+                }
+            }
+        }
+
+        if (totalFrames > 0) {
+            var percent = Math.min(100, Math.round((framesDone / totalFrames) * 100));
+            progressBar.value = percent;
+            progressText.text = t('rendering') + percent + '% (' + framesDone + '/' + totalFrames + ')';
+        } else {
+            // Fallback to fake progress if totalFrames is not available
+            if (progressBar.value < 95) {
+                progressBar.value += 1;
+            }
         }
 
         if (tempFilePath) {
@@ -101,21 +151,35 @@ function showRenderBG_UI(compNames, tempFilePath) {
                 // The batch file deletes the temp AEP when it finishes.
                 // If it's gone, the render is likely done.
                 if (pollTask) app.cancelTask(pollTask);
-                win.close();
+                
+                progressBar.value = 100;
+                progressText.text = t('finished');
+                
+                // Delay closing a bit so user can see 100%
+                app.scheduleTask('if($.global.renderBG_win) $.global.renderBG_win.close();', 1000, false);
+                
+                // Cleanup log file
+                if (logFilePath) {
+                    var lf = new File(logFilePath);
+                    if (lf.exists) lf.remove();
+                }
             }
         }
     }
 
+    $.global.renderBG_win = win;
+
     win.onClose = function() {
         if (pollTask) app.cancelTask(pollTask);
+        $.global.renderBG_win = null;
     };
 
     win.center();
     win.show();
 
-    // Start a very lightweight polling task (every 5 seconds) to check if the file is gone
+    // Start a polling task (every 1 second) to check progress
     if (tempFilePath) {
-        pollTask = app.scheduleTask('showRenderBG_UI_check();', 5000, true);
+        pollTask = app.scheduleTask('showRenderBG_UI_check();', 1000, true);
         
         // Use global to ensure the task can find the check function
         $.global.showRenderBG_UI_check = function() {
