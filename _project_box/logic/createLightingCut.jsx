@@ -160,18 +160,41 @@ function createLightingCut(
 		return;
 	}
 
-	// Identify comps in Comp folder to duplicate
+	// Identify comps to duplicate (search both Comp folder and global templates)
 	var compsToDuplicate = [];
-	for (var j = 1; j <= compRootFolder.items.length; j++) {
-		var item = compRootFolder.items[j];
-		if (item instanceof CompItem) {
-			// Include template comps (usually ending in _000)
-			// Only skip if they look like they belong to a DIFFERENT cut already (not 000)
-			var isDifferentCut = item.name.match(/_(?!000)\d{3}$/);
-			if (!isDifferentCut) {
-				compsToDuplicate.push(item);
+	var seenCompIds = {};
+	
+	function collectCompsRecursively(folder, templateOnly) {
+		for (var j = 1; j <= folder.items.length; j++) {
+			var item = folder.items[j];
+			if (item instanceof CompItem) {
+				if (seenCompIds[item.id]) continue;
+
+				// Include template comps (ending in _000)
+				// Or if not templateOnly, include anything in Comp folder that isn't another cut
+				var isTemplate = item.name.match(/_000\s*$/);
+				var isDifferentCut = item.name.match(/_(?!000)\d{3}$/);
+				
+				if (isTemplate || (!templateOnly && !isDifferentCut)) {
+					compsToDuplicate.push(item);
+					seenCompIds[item.id] = true;
+				}
+			} else if (item instanceof FolderItem) {
+				// Don't recurse into folders that are clearly for other cuts (e.g. "001", "002")
+				var isOtherCutFolder = item.name.match(/^(?!000)\d{3}$/);
+				if (!isOtherCutFolder) {
+					collectCompsRecursively(item, templateOnly);
+				}
 			}
 		}
+	}
+	
+	// First: Search entire project for explicit templates (_000)
+	collectCompsRecursively(app.project.rootFolder, true);
+	
+	// Second: Search Comp folder for any other comps (if not already added)
+	if (compRootFolder) {
+		collectCompsRecursively(compRootFolder, false);
 	}
 	
 	if (compsToDuplicate.length === 0) {
@@ -195,30 +218,42 @@ function createLightingCut(
 			var renderDuration = ((cutSec * framerate + cutFrm) + (framerate / 3)) / framerate;
 
 			// 1. Create cut folder inside Comp folder
-			var cutCompFolder = findOrCreateFolder(cutNo, compRootFolder);
+			// Only create if we are NOT in template mode (cutNo !== "000")
+			var cutCompFolder = null;
+			if (cutNo !== "000") {
+				cutCompFolder = findOrCreateFolder(cutNo, compRootFolder);
+			}
 
 			// 2. Duplicate comps for this cut
 			var duplicatedComps = [];
 			for (var j = 0; j < compsToDuplicate.length; j++) {
 				var originalComp = compsToDuplicate[j];
+				
+				// Skip duplication if we are already in cut "000" and the comp is a "000" template
+				if (cutNo === "000" && originalComp.name.match(/_000\s*$/)) {
+					continue;
+				}
+
 				var newComp = originalComp.duplicate();
 				
 				// Handle naming: ensure _work or _work_000 becomes _work_001
-				var newName = originalComp.name.replace(/_000$/, "");
-				if (newName === "_work") {
-					newComp.name = "_work_" + cutNo;
-				} else {
-					newComp.name = newName + "_" + cutNo;
+				// Also handle cases with trailing spaces or different suffixes
+				var newName = originalComp.name.replace(/_000\s*$/, "");
+				newComp.name = newName + "_" + cutNo;
+				
+				// _work comps stay in their original folder (e.g. 05_3D bin in Sozai)
+				// Others move to the new cut folder in Comp folder
+				if (newName.indexOf("_work") === -1 && cutCompFolder) {
+					newComp.parentFolder = cutCompFolder;
 				}
 				
-				newComp.parentFolder = cutCompFolder;
 				newComp.duration = duration;
 				duplicatedComps.push(newComp);
 			}
 
 			// 3. Handle Render comp
 			var newRenderComp;
-			if (cuts.length === 1) {
+			if (cuts.length === 1 && cutNo !== "000") {
 				newRenderComp = mainRenderCompTemplate;
 			} else {
 				newRenderComp = mainRenderCompTemplate.duplicate();
@@ -234,10 +269,12 @@ function createLightingCut(
 
 			// 4. Recursive replacement in ALL new comps for this cut
 			// First in the render comp
-			replaceNestedCompsWithSuffix(newRenderComp, cutNo, cutCompFolder);
-			// Then in all other duplicated comps (like _work_001)
-			for (var k = 0; k < duplicatedComps.length; k++) {
-				replaceNestedCompsWithSuffix(duplicatedComps[k], cutNo, cutCompFolder);
+			if (cutCompFolder) {
+				replaceNestedCompsWithSuffix(newRenderComp, cutNo, cutCompFolder);
+				// Then in all other duplicated comps (like _work_001)
+				for (var k = 0; k < duplicatedComps.length; k++) {
+					replaceNestedCompsWithSuffix(duplicatedComps[k], cutNo, cutCompFolder);
+				}
 			}
 
 			// 5. Add to Render Queue and set templates
@@ -350,6 +387,17 @@ function replaceNestedCompsWithSuffix(parentComp, suffix, cutFolder) {
 				if (item instanceof CompItem && item.name === targetName) {
 					matchingComp = item;
 					break;
+				}
+			}
+			
+			// 3. Fallback: Search globally if not found in cutFolder (for _work comps in Sozai)
+			if (!matchingComp) {
+				for (var j = 1; j <= app.project.numItems; j++) {
+					var item = app.project.item(j);
+					if (item instanceof CompItem && item.name === targetName) {
+						matchingComp = item;
+						break;
+					}
 				}
 			}
 			
