@@ -55,8 +55,9 @@ function createCut(
 			}
 		} else {
 			try {
-				var takeCodeFromFile = templateFile.name.split('_')[3].split('.')[0];
-				if (takeCodeFromFile === targetTakeCode) {
+				var baseName = templateFile.name.replace(/\.[^\.]+$/, ''); // remove extension
+				var takeCodeFromFile = extractTakeCode(baseName);
+				if (takeCodeFromFile === targetTakeCode.toLowerCase()) {
 					thisTemplate = templateFile;
 					break;
 				}

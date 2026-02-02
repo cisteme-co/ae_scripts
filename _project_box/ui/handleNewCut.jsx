@@ -245,14 +245,14 @@ function handleNewCut(
 
 		if (takeInput && takesDrop.selection) {
 			var selectedCode = takesCodes[takesDrop.selection.index];
-			var codeSplit = selectedCode.split('_');
-			var lastPart = codeSplit[codeSplit.length - 1].split('.')[0];
+			var takeCode = extractTakeCode(selectedCode);
 			
-			// If it's something like "3d_t01", we only want "t01"
-			var takeMatch = lastPart.match(/t\d+$/i);
-			if (takeMatch) {
-				takeInput.text = takeMatch[0].toLowerCase();
+			if (takeCode) {
+				takeInput.text = takeCode.toLowerCase();
 			} else {
+				// Fallback to last part if extractTakeCode fails
+				var codeSplit = selectedCode.split('_');
+				var lastPart = codeSplit[codeSplit.length - 1].split('.')[0];
 				takeInput.text = lastPart.toLowerCase();
 			}
 		}

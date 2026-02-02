@@ -10,16 +10,16 @@ function fileReplace() {
 	}
 
 	var fileName = app.project.file.name;
-	var split = fileName.split('_');
-	if (split.length < 3) {
+	var info = parseFilename(fileName);
+	if (!info) {
 		alert('⚠️ Unexpected filename format: ' + fileName);
 		return;
 	}
 
-	var project = split[0];
-	var episode = split[1];
-	var cut = split[2];
-	var baseName = [project, episode, cut].join('_').toLowerCase();
+	var project = info.project;
+	var episode = info.episode;
+	var cut = info.cut;
+	var baseName = info.base;
 
 	// ────────────── 1. Locate project folder (5 levels up) ──────────────
 	function getNthParentFolder(folder, n) {
@@ -37,40 +37,56 @@ function fileReplace() {
 		return;
 	}
 
-	// ────────────── 2. Check paint folder ──────────────
-	var paintFolder = new Folder(projectFolder.fsName + '/assets/paint/');
-	if (!paintFolder.exists) {
-		alert('⚠️ Missing paint folder: ' + paintFolder.fsName);
-		return;
-	}
-
-	// ────────────── 3. Find episode folder ──────────────
-	var targetName = (project + episode).toLowerCase();
-	var episodeFolders = paintFolder.getFiles(function (f) {
-		return f instanceof Folder;
-	});
+	// ────────────── 2. Determine mode and locate episode folder ──────────────
+	var isLighting = app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
 	var episodeFolder = null;
-	for (var i = 0; i < episodeFolders.length; i++) {
-		if (episodeFolders[i].name.toLowerCase() === targetName) {
-			episodeFolder = episodeFolders[i];
-			break;
+
+	if (isLighting) {
+		// Lighting Path: <projectFolder>/production/lighting/<episode>/_doc/paint
+		var lightingPaintPath = projectFolder.fsName + '/production/lighting/' + episode + '/_doc/paint';
+		episodeFolder = new Folder(lightingPaintPath);
+
+		if (!episodeFolder.exists) {
+			alert('⚠️ Missing paint folder: ' + lightingPaintPath);
+			return;
 		}
-	}
-	if (!episodeFolder) {
-		alert('⚠️ Episode folder not found: ' + targetName);
-		return;
+	} else {
+		// Compositing Path: <projectFolder>/assets/paint/
+		var paintFolder = new Folder(projectFolder.fsName + '/assets/paint/');
+		if (!paintFolder.exists) {
+			alert('⚠️ Missing paint folder: ' + paintFolder.fsName);
+			return;
+		}
+
+		// Find episode folder inside assets/paint (e.g. orb01)
+		var targetName = (project + episode).toLowerCase();
+		var episodeFolders = paintFolder.getFiles(function (f) {
+			return f instanceof Folder;
+		});
+
+		for (var i = 0; i < episodeFolders.length; i++) {
+			if (episodeFolders[i].name.toLowerCase() === targetName) {
+				episodeFolder = episodeFolders[i];
+				break;
+			}
+		}
+
+		if (!episodeFolder) {
+			alert('⚠️ Episode folder not found: ' + targetName);
+			return;
+		}
 	}
 
 	// ────────────── Begin Undo Group ──────────────
 	app.beginUndoGroup('Replace Import Cell');
 
-	if (isLatestDataAlreadyImported(baseName, episodeFolder)) {
+	if (isLatestDataAlreadyImported(baseName, episodeFolder, cut, isLighting)) {
 		alert('✅ Latest version already imported for: ' + baseName);
 		app.endUndoGroup();
 		return;
 	}
 
-	replaceCellAssets(episodeFolder, baseName, cut);
+	replaceCellAssets(episodeFolder, baseName, cut, isLighting);
 
 	app.endUndoGroup();
 }
@@ -79,19 +95,30 @@ function fileReplace() {
 // Helpers
 // ============================================================
 
-function isLatestDataAlreadyImported(baseName, episodeFolder) {
-	var bin2D = findOrCreateBin('2D');
-	var binPaint = findOrCreateBin('paint', bin2D);
-	var binData = findOrCreateBin('_data', binPaint);
+function isLatestDataAlreadyImported(baseName, episodeFolder, cut, isLighting) {
+	var bins = setupBins(isLighting);
+	var binData = bins.binData;
 
-	baseName = baseName.toLowerCase();
+	var searchKey = cut.toLowerCase();
 	var cutFolders = [];
 
-	for (var i = 0; i < episodeFolder.getFiles().length; i++) {
-		var f = episodeFolder.getFiles()[i];
-		if (f.name.toLowerCase().indexOf(baseName) !== -1) {
-			cutFolders.push(f);
-		}
+	var rawCutFolders = episodeFolder.getFiles(function (f) {
+		if (!(f instanceof Folder)) return false;
+		var folderName = f.name.toLowerCase();
+
+		// 1. Exact match
+		if (folderName === searchKey) return true;
+
+		// 2. Distinct part match (handles "ws_06_001_k" for cut "001")
+		var escapedKey = searchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+		var regex = new RegExp("(^|[^0-9])" + escapedKey + "([^0-9]|$)", "i");
+		if (regex.test(folderName)) return true;
+
+		return false;
+	});
+
+	for (var i = 0; i < rawCutFolders.length; i++) {
+		cutFolders.push(rawCutFolders[i]);
 	}
 
 	cutFolders.sort(function (a, b) {
@@ -121,17 +148,17 @@ function isLatestDataAlreadyImported(baseName, episodeFolder) {
 	return false;
 }
 
-function replaceCellAssets(episodeFolder, baseName, cut) {
-	var bins = setupBins();
+function replaceCellAssets(episodeFolder, baseName, cut, isLighting) {
+	var bins = setupBins(isLighting);
 	var binData = bins.binData;
 	var binLo = bins.binLo;
 
 	moveOldFootage(binData, baseName);
 	moveOldFootage(binLo, baseName);
 
-	importCellAssets(episodeFolder, baseName, cut);
+	importCellAssets(episodeFolder, baseName, cut, isLighting);
 
-	replaceFootageInComps();
+	replaceFootageInComps(isLighting);
 }
 
 // Move existing footage to _old bin
@@ -151,17 +178,42 @@ function moveOldFootage(bin, baseName) {
 }
 
 // Import assets
-function importCellAssets(folder, baseName, cut) {
-	var bins = setupBins();
-	var files = folder.getFiles();
+function importCellAssets(folder, baseName, cut, isLighting) {
+	var bins = setupBins(isLighting);
+
+	var searchKey = cut.toLowerCase();
 	var foundCell = null;
 
-	for (var i = files.length - 1; i >= 0; i--) {
-		var f = files[i];
-		if (f instanceof Folder && f.name.toLowerCase().indexOf(baseName) !== -1) {
-			foundCell = f;
-			break;
-		}
+	var rawCutFolders = folder.getFiles(function (f) {
+		if (!(f instanceof Folder)) return false;
+		var folderName = f.name.toLowerCase();
+
+		// 1. Exact match
+		if (folderName === searchKey) return true;
+
+		// 2. Distinct part match (handles "ws_06_001_k" for cut "001")
+		var escapedKey = searchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+		var regex = new RegExp("(^|[^0-9])" + escapedKey + "([^0-9]|$)", "i");
+		if (regex.test(folderName)) return true;
+
+		return false;
+	});
+
+	// Sort in reverse alphabetical order and pick first (latest)
+	var cutFolders = [];
+	for (var i = 0; i < rawCutFolders.length; i++) {
+		cutFolders.push(rawCutFolders[i]);
+	}
+	cutFolders.sort(function (a, b) {
+		var an = a.name.toLowerCase();
+		var bn = b.name.toLowerCase();
+		if (an < bn) return 1;
+		if (an > bn) return -1;
+		return 0;
+	});
+
+	if (cutFolders.length > 0) {
+		foundCell = cutFolders[0];
 	}
 
 	if (!foundCell) {
@@ -240,49 +292,73 @@ function findOrCreateBin(name, parent) {
 	return parent.items.addFolder(name);
 }
 
-function setupBins() {
-	var bin2D = findOrCreateBin('2D');
-	var binLo = findOrCreateBin('_lo', bin2D);
-	var binPaint = findOrCreateBin('paint', bin2D);
-	var binData = findOrCreateBin('_data', binPaint);
-	return { bin2D: bin2D, binLo: binLo, binPaint: binPaint, binData: binData };
+function setupBins(isLighting) {
+	if (isLighting) {
+		var binSozai = findOrCreateBin('01)_sozai');
+		var binCel = findOrCreateBin('03_Cel', binSozai);
+		var binData = findOrCreateBin('00_Footage', binCel);
+		var binLo = findOrCreateBin('01_LO', binSozai);
+		return { binData: binData, binLo: binLo };
+	} else {
+		var bin2D = findOrCreateBin('2D');
+		var binLo = findOrCreateBin('_lo', bin2D);
+		var binPaint = findOrCreateBin('paint', bin2D);
+		var binData = findOrCreateBin('_data', binPaint);
+		return { bin2D: bin2D, binLo: binLo, binPaint: binPaint, binData: binData, isLighting: false };
+	}
 }
 
 // ============================================================
 // Footage Replacement
 // ============================================================
 
-function replaceFootageInComps() {
-	var bin2D = findOrCreateBin('2D');
-	var binPaint = findOrCreateBin('paint', bin2D);
-	var binData = findOrCreateBin('_data', binPaint);
-	var binLo = findOrCreateBin('_lo', bin2D);
+function replaceFootageInComps(isLighting) {
+	var bins = setupBins(isLighting);
+	var binData = bins.binData;
+	var binLo = bins.binLo;
 
 	try {
-		// Replace in [cell] folder inside 2D > paint
-		var cellFolder = null;
-		for (var i = 1; i <= binPaint.numItems; i++) {
-			var it = binPaint.item(i);
-			if (it instanceof FolderItem && it.name.toLowerCase() === 'cell') {
-				cellFolder = it;
-				break;
+		// Replace in [cell] folder or root depending on mode
+		var compFolder = null;
+		if (isLighting) {
+			// In lighting, look for "01_Cel" folder inside Sozai > Cel
+			var binSozai = findOrCreateBin('01)_sozai');
+			var binCel = findOrCreateBin('03_Cel', binSozai);
+			for (var i = 1; i <= binCel.numItems; i++) {
+				var it = binCel.item(i);
+				if (it instanceof FolderItem && it.name.toLowerCase() === '01_cel') {
+					compFolder = it;
+					break;
+				}
+			}
+		} else {
+			var binPaint = bins.binPaint;
+			for (var i = 1; i <= binPaint.numItems; i++) {
+				var it = binPaint.item(i);
+				if (it instanceof FolderItem && it.name.toLowerCase() === 'cell') {
+					compFolder = it;
+					break;
+				}
 			}
 		}
 
-		if (cellFolder) {
-			for (var k = 1; k <= cellFolder.numItems; k++) {
-				var comp = cellFolder.item(k);
+		if (compFolder) {
+			for (var k = 1; k <= compFolder.numItems; k++) {
+				var comp = compFolder.item(k);
 				if (comp instanceof CompItem) {
 					replaceInComp(comp, binData, binLo);
 				}
 			}
 		}
 
-		// Replace in _work comps only if they are inside 2D > paint
-		for (var i = 1; i <= binPaint.numItems; i++) {
-			var it = binPaint.item(i);
-			if (it instanceof CompItem && /^_work/i.test(it.name)) {
-				replaceInComp(it, binData, binLo);
+		// Replace in _work comps if they exist (standard for compositing)
+		if (!isLighting && bins.binPaint) {
+			var binPaint = bins.binPaint;
+			for (var i = 1; i <= binPaint.numItems; i++) {
+				var it = binPaint.item(i);
+				if (it instanceof CompItem && /^_work/i.test(it.name)) {
+					replaceInComp(it, binData, binLo);
+				}
 			}
 		}
 	} catch (e) {
@@ -333,6 +409,11 @@ function replaceInComp(comp, binData, binLo) {
 		// Recursively handle nested comps
 		if (lyr.source instanceof CompItem) {
 			replaceInComp(lyr.source, binData, binLo);
+			
+			// If this is a cellFX layer in a _work comp, ensure its label is orange
+			if (/_cellFX$/i.test(lyr.source.name) && /^_work/i.test(comp.name)) {
+				lyr.label = 11; // Orange
+			}
 		}
 	}
 }

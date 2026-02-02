@@ -13,16 +13,48 @@ function importBG() {
 	}
 
 	var fileName = app.project.file.name;
-	var fileNameSplit = fileName.split('_');
-	if (fileNameSplit.length < 3) {
+	var info = parseFilename(fileName);
+	if (!info) {
 		alert('Unexpected filename format: ' + fileName);
 		return;
 	}
 
-	var project = fileNameSplit[0];
-	var episode = fileNameSplit[1];
-	var cut = fileNameSplit[2];
-	var baseName = [project, episode, cut].join('_').toLowerCase();
+	var project = info.project;
+	var episode = info.episode;
+	var cut = info.cut;
+	var baseName = info.base;
+	var isLighting = app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
+
+	// Prepare search keys for BG files
+	// Handle variations like:
+	// - ws_06_001 (standard)
+	// - ws06_001 (project + episode joined)
+	// - ws06001 (all joined)
+	var searchKeys = [
+		baseName.toLowerCase(), // ws_06_001
+		(info.project + info.episode + '_' + info.cut).toLowerCase(), // ws06_001
+		baseName.replace(/_/g, '').toLowerCase(), // ws06001
+	];
+
+	// If cut is a range (e.g. 001-003), also search for the first part (001)
+	if (cut.indexOf('-') !== -1) {
+		var firstCut = cut.split('-')[0];
+		var firstBase = [info.project, episode, firstCut].join('_').toLowerCase();
+		searchKeys.push(firstBase); // ws_06_001
+		searchKeys.push((info.project + info.episode + '_' + firstCut).toLowerCase()); // ws06_001
+		searchKeys.push(firstBase.replace(/_/g, '')); // ws06001
+	}
+
+	// Remove duplicates from searchKeys
+	var uniqueKeys = [];
+	var keyMap = {};
+	for (var k = 0; k < searchKeys.length; k++) {
+		if (!keyMap[searchKeys[k]]) {
+			uniqueKeys.push(searchKeys[k]);
+			keyMap[searchKeys[k]] = true;
+		}
+	}
+	searchKeys = uniqueKeys;
 
 	var projectFolder = getNthParentFolder(app.project.file.parent, 5);
 	if (!projectFolder) {
@@ -40,34 +72,44 @@ function importBG() {
 		return;
 	}
 
-	// Find episode folder (e.g. orb01)
+	// Find episode folder (e.g. orb01 for compositing, #01 for lighting)
 	var targetName = (project + episode).toLowerCase();
+	var lightingTargetName = ('#' + episode).toLowerCase();
+
 	var episodeFolders = bgFolder.getFiles(function (f) {
 		return f instanceof Folder;
 	});
 
 	var episodeFolder = null;
 	for (var i = 0; i < episodeFolders.length; i++) {
-		if (episodeFolders[i].name.toLowerCase() === targetName) {
-			episodeFolder = episodeFolders[i];
-			break;
+		var folderName = episodeFolders[i].name.toLowerCase();
+		if (isLighting) {
+			if (folderName === lightingTargetName || folderName === episode.toLowerCase()) {
+				episodeFolder = episodeFolders[i];
+				break;
+			}
+		} else {
+			if (folderName === targetName) {
+				episodeFolder = episodeFolders[i];
+				break;
+			}
 		}
 	}
 
 	if (!episodeFolder) {
-		Alerts.alertEpisodeFolderNotFound(targetName);
+		Alerts.alertEpisodeFolderNotFound(isLighting ? lightingTargetName : targetName);
 		return;
 	}
 
 	app.beginUndoGroup('Import BG');
-	importBGAssets(episodeFolder, baseName, cut);
+	importBGAssets(episodeFolder, searchKeys, cut, isLighting);
 	app.endUndoGroup();
 }
 
 // ────────────────────────────────────────────────
 // Import background assets from specified folder
 // ────────────────────────────────────────────────
-function importBGAssets(folder, baseName, cut) {
+function importBGAssets(folder, searchKeys, cut, isLighting) {
 	var files = folder.getFiles();
 	var foundPSD = null;
 	var foundEXR = null;
@@ -91,7 +133,15 @@ function importBGAssets(folder, baseName, cut) {
 			var nameNoExt = f.name.replace(/\.[^\.]+$/, '').toLowerCase();
 			var ext = getFileExtension(f.name);
 
-			if (nameNoExt.indexOf(baseName) !== -1) {
+			var matches = false;
+			for (var k = 0; k < searchKeys.length; k++) {
+				if (nameNoExt.indexOf(searchKeys[k]) !== -1) {
+					matches = true;
+					break;
+				}
+			}
+
+			if (matches) {
 				if (ext === 'psd') foundPSD = f;
 
 				if (ext === 'exr') {
@@ -116,7 +166,7 @@ function importBGAssets(folder, baseName, cut) {
 	}
 
 	if (!foundPSD && !foundEXR && !foundSeqFolder) {
-		Alerts.alertNoBGAssetFound(baseName);
+		Alerts.alertNoBGAssetFound(searchKeys[0]);
 		return;
 	}
 
@@ -141,8 +191,14 @@ function importBGAssets(folder, baseName, cut) {
 				layer.outPoint = durationSeconds;
 			}
 
-			var folder2D = getOrCreateNestedFolder(['2D', 'bg']);
-			compItem.parentFolder = folder2D;
+			var folderBG;
+			if (isLighting) {
+				var binSozai = findOrCreateBin('01)_sozai');
+				folderBG = findOrCreateBin('02_BG', binSozai);
+			} else {
+				folderBG = getOrCreateNestedFolder(['2D', 'bg']);
+			}
+			compItem.parentFolder = folderBG;
 
 			var footageFolder = null;
 			for (var i = app.project.numItems; i >= 1; i--) {
@@ -158,7 +214,7 @@ function importBGAssets(folder, baseName, cut) {
 			}
 
 			if (footageFolder) {
-				footageFolder.parentFolder = folder2D;
+				footageFolder.parentFolder = folderBG;
 			}
 
 			for (var i = 1; i <= app.project.numItems; i++) {
@@ -198,8 +254,14 @@ function importBGAssets(folder, baseName, cut) {
 				exrItem.mainSource.alphaMode = 5413; // IGNORED
 			}
 
-			var folder3D = getOrCreateNestedFolder(['3D', 'bg']);
-			exrItem.parentFolder = folder3D;
+			var folderBG;
+			if (isLighting) {
+				var binSozai = findOrCreateBin('01)_sozai');
+				folderBG = findOrCreateBin('02_BG', binSozai);
+			} else {
+				folderBG = getOrCreateNestedFolder(['3D', 'bg']);
+			}
+			exrItem.parentFolder = folderBG;
 
 			var base3DComp = getComp(cut + '_3d');
 			if (base3DComp) {
@@ -242,8 +304,14 @@ function importBGAssets(folder, baseName, cut) {
 						}
 					}
 
-					var folder3D = getOrCreateNestedFolder(['3D', 'bg']);
-					seqItem.parentFolder = folder3D;
+					var folderBG;
+					if (isLighting) {
+						var binSozai = findOrCreateBin('01)_sozai');
+						folderBG = findOrCreateBin('02_BG', binSozai);
+					} else {
+						folderBG = getOrCreateNestedFolder(['3D', 'bg']);
+					}
+					seqItem.parentFolder = folderBG;
 
 					var base3DComp = getComp(cut + '_3d');
 					if (base3DComp) {

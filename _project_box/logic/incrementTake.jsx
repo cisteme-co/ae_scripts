@@ -11,15 +11,25 @@ function incrementTake(take) {
 	// 1. PARSE FILENAME AND OLD TAKE
 	// ───────────────────────────────────────────────
 	var fileName = app.project.file.name;
-	var fileNameSplit = fileName.split('_');
+	var info = parseFilename(fileName);
 
-	if (fileNameSplit.length < 2) {
+	if (!info) {
 		Alerts.alertUnexpectedFilenameFormat(fileName);
 		return;
 	}
 
-	var lastSegment = fileNameSplit[fileNameSplit.length - 1];
-	var oldTake = lastSegment.split('.')[0];
+	var baseName = info.fullBase;
+	var oldTake = info.take;
+
+	if (!oldTake) {
+		// Fallback to extraction if parseFilename didn't find it in the standard place
+		oldTake = extractTakeCode(baseName);
+	}
+
+	if (!oldTake) {
+		Alerts.alertCouldNotDetermineOldTake(fileName);
+		return;
+	}
 
 	// ───────────────────────────────────────────────
 	// 2. PREPARE NEW FILENAME

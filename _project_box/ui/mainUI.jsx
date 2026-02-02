@@ -498,14 +498,6 @@ function buildUI(thisObj) {
 		app.settings.saveSetting(section, keys.cut, cutInput.text);
 	};
 
-	// ───── Helper function to extract take code from filename ─────
-	function extractTakeCode(filename) {
-		// Matches take codes like c1, g1, 3d_t1, t1, v0, v1 at the end of filename
-		var regex = /(c\d+|g\d+|3d_t\d+|t\d+|v0|v\d+)$/i;
-		var match = filename.match(regex);
-		return match ? match[0].toLowerCase() : null;
-	}
-
 	// Initialize takeInput text from project file name's take code
 	if (app.project.file != null) {
 		var fileName = app.project.file.name;

@@ -99,12 +99,13 @@ function openFile(projects, episodes, cutInput, takeInput, mode) {
 	function getTakeRank(fileName) {
 		var base = fileName.toLowerCase();
 		var patterns = [
-			{ regex: /_v(\d+)\.aepx?$/, rank: 100 },
-			{ regex: /_v0\.aepx?$/, rank: 90 },
-			{ regex: /_t(\d+)\.aepx?$/, rank: 80 },
-			{ regex: /_3d_t(\d+)\.aepx?$/, rank: 70 },
-			{ regex: /_g(\d+)\.aepx?$/, rank: 60 },
-			{ regex: /_c(\d+)\.aepx?$/, rank: 50 },
+			{ regex: /_v(\d+)\.aepx?$/, rank: 1000 },
+			{ regex: /_v0\.aepx?$/, rank: 900 },
+			{ regex: /_t(\d+)\.aepx?$/, rank: 800 },
+			{ regex: /_3d_t(\d+)\.aepx?$/, rank: 700 },
+			{ regex: /_g(\d+)\.aepx?$/, rank: 600 },
+			{ regex: /_c(\d+)\.aepx?$/, rank: 500 },
+			{ regex: /([vctg]\d+)\.aepx?$/, rank: 100 }, // fallback for no underscore
 		];
 
 		for (var i = 0; i < patterns.length; i++) {
@@ -145,9 +146,9 @@ function openFile(projects, episodes, cutInput, takeInput, mode) {
 
 		// Update takeInput UI element with detected take suffix or fallback
 		if (takeInput) {
-			var fileNameSplit = bestFile.name.split('_');
-			var lastPart = fileNameSplit[fileNameSplit.length - 1].split('.')[0];
-			takeInput.text = lastPart.toLowerCase();
+			var baseName = bestFile.name.replace(/\.[^\.]+$/, ''); // remove extension
+			var takeCode = extractTakeCode(baseName);
+			takeInput.text = takeCode ? takeCode : '--';
 		}
 	} else {
 		Alerts.alertCouldNotDetermineBestFile();
