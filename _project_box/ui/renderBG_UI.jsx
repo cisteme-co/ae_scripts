@@ -14,8 +14,9 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
             ja: 'すべての背景レンダリングを停止してもよろしいですか？' 
         },
         cancelled: { en: 'Render cancelled.', ja: 'レンダーが中止されました。' },
-        rendering: { en: 'Rendering... ', ja: 'レンダリング中... ' },
-        finished: { en: 'Finished!', ja: '完了！' },
+        preparing: { en: 'Preparing render...', ja: 'レンダリングの準備中...' },
+        rendering: { en: 'Rendering: ', ja: 'レンダリング中: ' },
+        finished: { en: 'Finished!', ja: '完了しました！' },
         error: { en: 'Error cancelling render: ', ja: 'レンダー中止中にエラーが発生しました: ' },
         renderSuccess: { en: 'Render completed successfully!', ja: 'レンダリングが正常に完了しました！' },
         renderFailed: { en: 'Render failed or crashed. Please check the log for details.', ja: 'レンダリングが失敗またはクラッシュしました。詳細はログを確認してください。' }
@@ -95,11 +96,12 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
     progGroup.margins.top = 10;
     
     var progressBar = progGroup.add('progressbar', undefined, 0, 100);
-    progressBar.preferredSize.width = 250;
+    progressBar.preferredSize.width = 300;
     progressBar.value = 0;
     
-    var progressText = progGroup.add('statictext', undefined, 'Rendering...');
+    var progressText = progGroup.add('statictext', undefined, t('preparing'));
     progressText.alignment = 'center';
+    progressText.preferredSize.width = 300;
     progressText.graphics.foregroundColor = progressText.graphics.newPen(progressText.graphics.PenType.SOLID_COLOR, [0.7, 0.7, 0.7, 1], 1);
 
     // Cancel Button
@@ -167,38 +169,55 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
                 var content = readLogSafely(logFilePath);
                 
                 if (content && content.length > 0) {
-                    // Count lines that indicate a frame was rendered.
+                    // Check if we have started rendering
+                    var hasStarted = content.indexOf('RENDER_STARTED') !== -1;
+                    
+                    // Parse actual frame progress from aerender output
                     // aerender outputs: PROGRESS:  0:00:00:00 (1): 1 Frames
                     var matches = content.match(/PROGRESS:.*?\(\d+\)/gi);
                     if (matches) {
                         framesDone = matches.length;
                     }
-                }
-            }
-
-            // Update progress bar
-            if (totalFrames > 0 && totalFrames !== null) {
-                var percent = Math.min(100, Math.round((framesDone / totalFrames) * 100));
-                progressBar.value = percent;
-                progressText.text = t('rendering') + percent + '% (' + framesDone + '/' + totalFrames + ')';
-            } else {
-                // Fallback to incremental progress if totalFrames is not available
-                if (framesDone > lastFramesDone) {
-                    lastFramesDone = framesDone;
-                    if (progressBar.value < 95) {
-                        progressBar.value += 2;
+                    
+                    // FALLBACK: If aerender doesn't output PROGRESS (sometimes happens with redirection),
+                    // look for "Finished frame" which is also common in logs
+                    if (!matches || matches.length === 0) {
+                        var finishedMatches = content.match(/Finished frame/gi);
+                        if (finishedMatches) {
+                            framesDone = finishedMatches.length;
+                        }
                     }
+
+                    if (hasStarted) {
+                        if (totalFrames > 0) {
+                            var percent = Math.min(100, Math.round((framesDone / totalFrames) * 100));
+                            progressBar.value = percent;
+                            progressText.text = t('rendering') + percent + '% (' + framesDone + '/' + totalFrames + ')';
+                        } else {
+                            progressText.text = t('rendering') + framesDone + ' frames';
+                            if (framesDone > lastFramesDone) {
+                                lastFramesDone = framesDone;
+                                if (progressBar.value < 95) progressBar.value += 1;
+                            }
+                        }
+                    } else {
+                        progressText.text = t('preparing');
+                    }
+                } else {
+                    progressText.text = t('preparing');
                 }
-                progressText.text = t('rendering') + framesDone + ' frames';
             }
 
             // Check if render is complete (log file contains finished marker)
             if (logFilePath) {
                 try {
-                    var f = new File(logFilePath);
                     var content = readLogSafely(logFilePath);
                     
-                    if (content.indexOf('Render process finished.') !== -1 && !renderOutcomeDetected) {
+                    // Robust check for multiple possible finish markers
+                    var isFinishedMarkerFound = (content.indexOf('Render process finished.') !== -1) || 
+                                              (content.indexOf('AERENDER FINISHED') !== -1);
+                    
+                    if (isFinishedMarkerFound && !renderOutcomeDetected) {
                         renderOutcomeDetected = true;
                         
                         if (pollTask != null) {

@@ -84,7 +84,7 @@ function buildUI(thisObj) {
 
 	// Dropdown to select Project
 	var projectsDrop = firstRow.add('dropdownlist', undefined, []);
-	projectsDrop.preferredSize.width = 120;
+	projectsDrop.preferredSize.width = 150;
 
 	// Dropdown to select Episode within the selected project
 	var episodeDrop = firstRow.add('dropdownlist', undefined, []);

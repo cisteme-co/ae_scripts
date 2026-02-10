@@ -167,7 +167,111 @@ function renderBG() {
 			return;
 		}
 		
-		$.writeln('Found ' + queueInfo.length + ' queued items with ' + totalFrames + ' total frames');
+		// ──────────────
+		// CONFIRMATION DIALOG (ScriptUI with Checkboxes)
+		// Only show if there are 2 or more items in the queue
+		// ──────────────
+		if (queueInfo.length >= 2) {
+			var lang = getLanguage();
+			var uiStrings = {
+				title: { en: 'Select Items to Render', ja: 'レンダリング項目の選択' },
+				msg: { en: 'Select the items you want to render in the background:', ja: '背景でレンダリングする項目を選択してください：' },
+				start: { en: 'Start Render', ja: 'レンダー開始' },
+				cancel: { en: 'Cancel', ja: 'キャンセル' },
+				selectAll: { en: 'Select All', ja: 'すべて選択' },
+				selectNone: { en: 'Select None', ja: 'すべて解除' }
+			};
+			
+			var t = function(key) { return uiStrings[key][lang] || uiStrings[key]['en']; };
+
+			var dlg = new Window('dialog', t('title'));
+			dlg.orientation = 'column';
+			dlg.alignChildren = ['fill', 'top'];
+			dlg.spacing = 15;
+			dlg.margins = 20;
+
+			dlg.add('statictext', undefined, t('msg'));
+
+			// Scrollable area for checkboxes
+			var panel = dlg.add('panel', undefined, undefined);
+			panel.orientation = 'column';
+			panel.alignChildren = ['fill', 'top'];
+			panel.preferredSize = [400, 250];
+			
+			var scrollGroup = panel.add('group');
+			scrollGroup.orientation = 'column';
+			scrollGroup.alignChildren = ['left', 'top'];
+			scrollGroup.spacing = 5;
+			scrollGroup.alignment = ['fill', 'fill'];
+			// Make it scrollable if many items
+			scrollGroup.maximumSize.height = 10000; 
+
+			var checkboxes = [];
+			for (var i = 0; i < queueInfo.length; i++) {
+				var cb = scrollGroup.add('checkbox', undefined, queueInfo[i].compName);
+				cb.value = true; // Default to checked
+				checkboxes.push(cb);
+			}
+
+			// Selection helpers
+			var selGroup = dlg.add('group');
+			selGroup.orientation = 'row';
+			selGroup.spacing = 10;
+			var allBtn = selGroup.add('button', undefined, t('selectAll'), {style: 'toolbutton'});
+			var noneBtn = selGroup.add('button', undefined, t('selectNone'), {style: 'toolbutton'});
+
+			allBtn.onClick = function() { for(var i=0; i<checkboxes.length; i++) checkboxes[i].value = true; };
+			noneBtn.onClick = function() { for(var i=0; i<checkboxes.length; i++) checkboxes[i].value = false; };
+
+			var btnGroup = dlg.add('group');
+			btnGroup.orientation = 'row';
+			btnGroup.alignment = 'right';
+			btnGroup.spacing = 10;
+
+			var cancelBtn = btnGroup.add('button', undefined, t('cancel'), {name: 'cancel'});
+			var startBtn = btnGroup.add('button', undefined, t('start'), {name: 'ok'});
+
+			if (dlg.show() !== 1) {
+				return;
+			}
+
+			// Filter queueInfo based on selection
+			var selectedQueueInfo = [];
+			var selectedCompNames = [];
+			var selectedTotalFrames = 0;
+
+			for (var i = 0; i < checkboxes.length; i++) {
+				if (checkboxes[i].value) {
+					var itemData = queueInfo[i];
+					selectedQueueInfo.push(itemData);
+					selectedCompNames.push(itemData.compName);
+					
+					// Re-calculate total frames for selected items
+					var item = rq.item(itemData.index);
+					var frameDuration = item.comp.frameDuration;
+					var start = item.timeStart;
+					var end = item.timeEnd;
+					if (end <= start) {
+						start = item.comp.workAreaStart;
+						end = start + item.comp.workAreaDuration;
+					}
+					var itemFrames = Math.ceil((end - start) / frameDuration);
+					if (itemFrames <= 0) itemFrames = 1;
+					selectedTotalFrames += itemFrames;
+				}
+			}
+
+			if (selectedQueueInfo.length === 0) {
+				return;
+			}
+
+			// Update variables with filtered selection
+			queueInfo = selectedQueueInfo;
+			compNames = selectedCompNames;
+			totalFrames = selectedTotalFrames;
+			
+			$.writeln('User selected ' + queueInfo.length + ' items with ' + totalFrames + ' total frames');
+		}
 
 		// Now set output paths for mp4 and mov files
 		$.writeln('Starting path setting...');
@@ -400,8 +504,8 @@ function renderBG() {
 			cmd += 'chcp 65001 >nul\r\n';
 			cmd += 'echo Starting render...\r\n';
 			
-			// Initialize log file
-			cmd += 'echo Render Start: %date% %time% > ' + wq(logFile.fsName) + '\r\n';
+			// Write start marker to log immediately
+			cmd += 'echo RENDER_STARTED > ' + wq(logFile.fsName) + '\r\n';
 			
 			// Generate aerender command for each item using the -output flag
 			for (var rIdx = 0; rIdx < queueInfo.length; rIdx++) {
@@ -410,11 +514,11 @@ function renderBG() {
 					var oData = rItem.outputs[oIdx];
 					if (oData.tempPath) {
 						cmd += 'echo Rendering Item ' + (rIdx+1) + ' Output ' + (oIdx+1) + '...\r\n';
-						// NO REDIRECTION for aerender to avoid file locks
+						// Append to log for accurate progress tracking
 						cmd += wq(aerShort) + ' -project ' + wq(tmpAep.fsName);
 						cmd += ' -rqindex ' + rItem.index;
 						cmd += ' -output ' + wq(oData.tempPath);
-						cmd += ' -sound ON\r\n';
+						cmd += ' -sound ON >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
 					}
 				}
 			}
@@ -422,17 +526,19 @@ function renderBG() {
 			if (moveCommands.length > 0) {
 				cmd += 'echo Moving files to destination...\r\n';
 				for (var moveIdx = 0; moveIdx < moveCommands.length; moveIdx++) {
-					// NO REDIRECTION for moves
 					cmd += moveCommands[moveIdx] + '\r\n';
 				}
 			}
 			
 			cmd += 'echo Cleaning up...\r\n';
 			cmd += 'if exist ' + wq(tmpAep.fsName) + ' del ' + wq(tmpAep.fsName) + ' 2>nul\r\n';
+			
+			// Small delay to ensure all logs are flushed before the final marker
+			cmd += 'timeout /t 2 /nobreak >nul\r\n';
+			
 			cmd += 'echo Render process finished.\r\n';
-			// Log finish at the very end when no other processes are running
-			// Include "AERENDER FINISHED" so the UI detects success correctly
-			cmd += 'echo AERENDER FINISHED - Render process finished. > ' + wq(logFile.fsName) + '\r\n';
+			// Log finish at the very end to signal success to UI
+			cmd += 'echo AERENDER FINISHED - Render process finished. >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
 			cmd += 'exit\r\n';
 		} else {
 			aer = new File(Folder.appPackage.parent.fullName + '/aerender');
@@ -468,20 +574,20 @@ function renderBG() {
 			$.sleep(500);
 			
 			if (is_win_os) {
-				// To make it TRULY non-blocking on Windows, we use a VBScript wrapper.
-				// This launches the batch file and immediately returns control to AE.
+				// To make it TRULY non-blocking and HIDDEN on Windows, we use a VBScript wrapper.
+				// This launches the batch file without any CMD window popping up.
 				var vbsFile = new File(Folder.temp.fullName + '/aerender_launcher_' + timestamp + '.vbs');
 				if (vbsFile.open('w')) {
 					// WshShell.Run(command, windowStyle, waitOnReturn)
-					// 1 = Normal window, so we can see the CMD if it fails.
+					// windowStyle: 0 = Hidden window
 					vbsFile.write('Set WshShell = CreateObject("WScript.Shell")\n');
-					vbsFile.write('WshShell.Run "cmd.exe /c " & Chr(34) & "' + shellCmdFile.fsName + '" & Chr(34), 1, false\n');
+					vbsFile.write('WshShell.Run "cmd.exe /c " & Chr(34) & "' + shellCmdFile.fsName + '" & Chr(34), 0, false\n');
 					vbsFile.close();
 					
 					vbsFile.execute();
 					
 					// Cleanup VBS after a short delay
-					app.scheduleTask('try { var f = new File("' + vbsFile.fsName.replace(/\\/g, '/') + '"); if(f.exists) f.remove(); } catch(e) {}', 2000, false);
+					app.scheduleTask('try { var f = new File("' + vbsFile.fsName.replace(/\\/g, '/') + '"); if(f.exists) f.remove(); } catch(e) {}', 5000, false);
 				} else {
 					// Fallback if VBS creation fails
 					shellCmdFile.execute();
