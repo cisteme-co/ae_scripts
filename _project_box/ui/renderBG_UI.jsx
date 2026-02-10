@@ -25,6 +25,47 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
         return strings[key][lang] || strings[key]['en'];
     }
     
+    // IMPROVED: Safe log file reading with proper encoding detection
+    function readLogSafely(logFile) {
+        if (!logFile) return '';
+        
+        try {
+            var f = new File(logFile);
+            if (!f.exists) return '';
+            
+            var content = '';
+            var encodings = is_win_os ? ['UTF-8', 'UTF-16LE', 'UTF-16'] : ['UTF-8'];
+            
+            for (var i = 0; i < encodings.length; i++) {
+                f.encoding = encodings[i];
+                if (f.open('r')) {
+                    try {
+                        var testContent = f.read();
+                        f.close();
+                        
+                        // Check if content is valid (not full of null chars or corrupted)
+                        if (testContent && testContent.length > 0) {
+                            var nullCount = 0;
+                            for (var j = 0; j < Math.min(100, testContent.length); j++) {
+                                if (testContent.charCodeAt(j) === 0) nullCount++;
+                            }
+                            // If less than 30% null chars, consider it valid
+                            if (nullCount < 30) {
+                                content = testContent;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        f.close();
+                    }
+                }
+            }
+            return content;
+        } catch (e) {
+            return '';
+        }
+    }
+    
     // Create a palette window (non-modal)
     var win = new Window('palette', t('title'), undefined, { resizeable: false });
     win.orientation = 'column';
@@ -46,7 +87,7 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
         compListGroup.add('statictext', undefined, '• ' + compNames[i]);
     }
 
-    // Progress Bar (Visual only for now)
+    // Progress Bar
     var progGroup = win.add('group');
     progGroup.orientation = 'column';
     progGroup.alignChildren = ['fill', 'center'];
@@ -55,7 +96,7 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
     
     var progressBar = progGroup.add('progressbar', undefined, 0, 100);
     progressBar.preferredSize.width = 250;
-    progressBar.value = 0; // Starts at 0
+    progressBar.value = 0;
     
     var progressText = progGroup.add('statictext', undefined, 'Rendering...');
     progressText.alignment = 'center';
@@ -67,27 +108,45 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
     
     var pollTask = null;
     var renderOutcomeDetected = false;
+    var lastFramesDone = 0;
 
     cancelBtn.onClick = function() {
         if (confirm(t('confirmCancel'))) {
             try {
                 if (is_win_os) {
-                    // Use taskkill /T to kill the process tree (including the shell that started it)
                     system.callSystem('taskkill /F /IM aerender.exe /T');
                 } else {
                     system.callSystem('killall aerender');
                 }
-                if (pollTask) app.cancelTask(pollTask);
+                
+                // IMPROVED: Safe task cancellation
+                if (pollTask != null) {
+                    try {
+                        app.cancelTask(pollTask);
+                    } catch (e) {
+                        $.writeln('Error canceling task: ' + e.toString());
+                    }
+                    pollTask = null;
+                }
                 
                 // Cleanup temp file if it still exists after cancel
                 if (tempFilePath) {
-                    var f = new File(tempFilePath);
-                    if (f.exists) f.remove();
+                    try {
+                        var f = new File(tempFilePath);
+                        if (f.exists) f.remove();
+                    } catch (e) {
+                        // Ignore cleanup errors
+                    }
                 }
+                
                 // Cleanup log file if it exists
                 if (logFilePath) {
-                    var lf = new File(logFilePath);
-                    if (lf.exists) lf.remove();
+                    try {
+                        var lf = new File(logFilePath);
+                        if (lf.exists) lf.remove();
+                    } catch (e) {
+                        // Ignore cleanup errors
+                    }
                 }
 
                 alert(t('cancelled'));
@@ -98,141 +157,159 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
         }
     };
 
-    // Auto-close check
+    // IMPROVED: Auto-close check with better error handling
     function checkStatus() {
-        var framesDone = 0;
-        
-        // Try to read log file to get actual progress
-        if (logFilePath) {
-            var lf = new File(logFilePath);
-            if (lf.exists) {
-                // On Windows, PowerShell's Tee-Object often writes in UTF-16LE
-                // We'll try to detect or just set it to handle common cases
-                if (is_win_os) lf.encoding = 'UTF-16'; 
+        try {
+            var framesDone = 0;
+            
+            // Try to read log file to get actual progress
+            if (logFilePath) {
+                var content = readLogSafely(logFilePath);
                 
-                if (lf.open('r')) {
-                    try {
-                        var content = lf.read();
-                        lf.close();
+                if (content && content.length > 0) {
+                    // Count lines that indicate a frame was rendered.
+                    // aerender outputs: PROGRESS:  0:00:00:00 (1): 1 Frames
+                    var matches = content.match(/PROGRESS:.*?\(\d+\)/gi);
+                    if (matches) {
+                        framesDone = matches.length;
+                    }
+                }
+            }
+
+            // Update progress bar
+            if (totalFrames > 0 && totalFrames !== null) {
+                var percent = Math.min(100, Math.round((framesDone / totalFrames) * 100));
+                progressBar.value = percent;
+                progressText.text = t('rendering') + percent + '% (' + framesDone + '/' + totalFrames + ')';
+            } else {
+                // Fallback to incremental progress if totalFrames is not available
+                if (framesDone > lastFramesDone) {
+                    lastFramesDone = framesDone;
+                    if (progressBar.value < 95) {
+                        progressBar.value += 2;
+                    }
+                }
+                progressText.text = t('rendering') + framesDone + ' frames';
+            }
+
+            // Check if render is complete (log file contains finished marker)
+            if (logFilePath) {
+                try {
+                    var f = new File(logFilePath);
+                    var content = readLogSafely(logFilePath);
+                    
+                    if (content.indexOf('Render process finished.') !== -1 && !renderOutcomeDetected) {
+                        renderOutcomeDetected = true;
                         
-                        // If content is empty with UTF-16, try default encoding (for Mac/Linux or different PS versions)
-                        if (!content || content.length === 0) {
-                            lf.encoding = 'UTF-8';
-                            if (lf.open('r')) {
-                                content = lf.read();
-                                lf.close();
+                        if (pollTask != null) {
+                            try {
+                                app.cancelTask(pollTask);
+                            } catch (e) {
+                                // Ignore
+                            }
+                            pollTask = null;
+                        }
+                        
+                        progressBar.value = 100;
+                        progressText.text = t('finished');
+                        
+                        // Final check of the log file to determine success/failure
+                        var isSuccess = false;
+                        if (logFilePath) {
+                            var finalContent = readLogSafely(logFilePath);
+                            
+                            if (finalContent && finalContent.length > 0) {
+                                var upperContent = finalContent.toUpperCase();
+                                
+                                // Check for success markers
+                                if (upperContent.indexOf('TOTAL TIME ELAPSED') !== -1 ||
+                                    upperContent.indexOf('AERENDER FINISHED') !== -1 ||
+                                    upperContent.indexOf('LOG ENDED') !== -1) {
+                                    isSuccess = true;
+                                }
+                                
+                                // Fallback: If we rendered all frames, consider it success
+                                if (!isSuccess && totalFrames > 0) {
+                                    var finalMatches = finalContent.match(/PROGRESS:.*?\(\d+\)/gi);
+                                    var finalFramesDone = finalMatches ? finalMatches.length : 0;
+                                    if (finalFramesDone >= totalFrames) {
+                                        isSuccess = true;
+                                    }
+                                }
+
+                                // Check for explicit error markers
+                                if (upperContent.indexOf('AERENDER ERROR') !== -1 || 
+                                    upperContent.indexOf('AFTER EFFECTS ERROR:') !== -1 ||
+                                    upperContent.indexOf(': ERROR ') !== -1) {
+                                    isSuccess = false;
+                                }
                             }
                         }
 
-                        // Count lines that indicate a frame was rendered.
-                        // aerender outputs: PROGRESS:  0:00:00:00 (1): 1 Frames
-                        var matches = content.match(/^PROGRESS:.*?\(\d+\)/gm);
-                        if (matches) {
-                            framesDone = matches.length;
+                        // Show alert based on outcome
+                        if (isSuccess) {
+                            alert(t('renderSuccess'));
+                            // Cleanup log file only on success
+                            if (logFilePath) {
+                                try {
+                                    var lf = new File(logFilePath);
+                                    if (lf.exists) lf.remove();
+                                } catch (e) {}
+                            }
+                        } else {
+                            alert(t('renderFailed'));
+                            // Open log file directly on failure
+                            if (logFilePath) {
+                                try {
+                                    var lf = new File(logFilePath);
+                                    if (lf.exists) {
+                                        lf.execute();
+                                    }
+                                } catch (e) {
+                                    $.writeln('Error opening log file: ' + e.toString());
+                                }
+                            }
                         }
-                    } catch (e) {
-                        // Ignore read errors
+
+                        // IMPROVED: Use unique global reference for scheduled close
+                        var closeWinId = 'closeRenderWin_' + new Date().getTime();
+                        $.global[closeWinId] = win;
+                        app.scheduleTask(
+                            'try { if($.global.' + closeWinId + ') { $.global.' + closeWinId + '.close(); $.global.' + closeWinId + ' = null; } } catch(e) {}',
+                            500,
+                            false
+                        );
+                        
                     }
+                } catch (e) {
+                    // ADDED: Error handling for file existence check
+                    $.writeln('Error checking temp file: ' + e.toString());
                 }
             }
-        }
-
-        if (totalFrames > 0) {
-            var percent = Math.min(100, Math.round((framesDone / totalFrames) * 100));
-            progressBar.value = percent;
-            progressText.text = t('rendering') + percent + '% (' + framesDone + '/' + totalFrames + ')';
-        } else {
-            // Fallback to fake progress if totalFrames is not available
-            if (progressBar.value < 95) {
-                progressBar.value += 1;
-            }
-        }
-
-        if (tempFilePath) {
-            var f = new File(tempFilePath);
-            if (!f.exists && !renderOutcomeDetected) {
-                renderOutcomeDetected = true;
-                // The batch file deletes the temp AEP when it finishes.
-                // If it's gone, the render is likely done.
-                if (pollTask) app.cancelTask(pollTask);
-                
-                progressBar.value = 100;
-                progressText.text = t('finished');
-                
-                // Final check of the log file to determine success/failure
-                var isSuccess = false;
-                if (logFilePath) {
-                    var lf = new File(logFilePath);
-                    if (lf.exists) {
-                        if (is_win_os) lf.encoding = 'UTF-16';
-                        if (lf.open('r')) {
-                            var finalContent = lf.read();
-                            lf.close();
-                            // If content seems empty or garbage (not containing common markers), try UTF-8
-                             var isGarbage = !finalContent || (finalContent.indexOf('PROGRESS') === -1 && finalContent.indexOf('FINISHED') === -1);
-                             if (isGarbage) {
-                                 lf.encoding = 'UTF-8';
-                                 if (lf.open('r')) {
-                                     finalContent = lf.read();
-                                     lf.close();
-                                 }
-                             }
-                             // Check for success markers (case-insensitive)
-                              var upperContent = finalContent.toUpperCase();
-                              if (upperContent && (
-                                  upperContent.indexOf('FINISHED') !== -1 || 
-                                  upperContent.indexOf('BATCH RENDER COMPLETED') !== -1 ||
-                                  upperContent.indexOf('TOTAL TIME ELAPSED') !== -1 ||
-                                  upperContent.indexOf('RENDER PROCESSED') !== -1
-                              )) {
-                                  isSuccess = true;
-                              }
- 
-                              // Fallback: If we can't find markers but progress shows all frames are done
-                              if (!isSuccess && totalFrames > 0) {
-                                  var finalMatches = finalContent.match(/^PROGRESS:.*?\(\d+\)/gm);
-                                  var finalFramesDone = finalMatches ? finalMatches.length : 0;
-                                  if (finalFramesDone >= totalFrames) {
-                                      isSuccess = true;
-                                  }
-                              }
-
-                              // Final check: if there's a clear error message, mark as failure
-                              if (upperContent && (
-                                  upperContent.indexOf('ERROR:') !== -1 || 
-                                  upperContent.indexOf('AFTER EFFECTS ERROR:') !== -1 ||
-                                  upperContent.indexOf('AERENDER ERROR:') !== -1
-                              )) {
-                                  isSuccess = false;
-                              }
-                        }
-                    }
-                }
-
-                // Show alert based on outcome
-                if (isSuccess) {
-                    alert(t('renderSuccess'));
-                } else {
-                    alert(t('renderFailed'));
-                }
-
-                // Delay closing a bit so user can see 100%
-                app.scheduleTask('if($.global.renderBG_win) $.global.renderBG_win.close();', 100, false);
-                
-                // Cleanup log file
-                if (logFilePath) {
-                    var lf = new File(logFilePath);
-                    if (lf.exists) lf.remove();
-                }
-            }
+        } catch (e) {
+            // ADDED: Catch-all error handler to prevent crashes
+            $.writeln('Error in checkStatus: ' + e.toString());
         }
     }
 
-    $.global.renderBG_win = win;
+    // IMPROVED: Use unique global reference to avoid conflicts
+    var winId = 'renderBG_win_' + new Date().getTime();
+    $.global[winId] = win;
 
     win.onClose = function() {
-        if (pollTask) app.cancelTask(pollTask);
-        $.global.renderBG_win = null;
+        if (pollTask != null) {
+            try {
+                app.cancelTask(pollTask);
+            } catch (e) {
+                // Ignore
+            }
+            pollTask = null;
+        }
+        try {
+            $.global[winId] = null;
+        } catch (e) {
+            // Ignore
+        }
     };
 
     win.center();
@@ -240,19 +317,33 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
 
     // Start a polling task (every 1 second) to check progress
     if (tempFilePath) {
-        pollTask = app.scheduleTask('showRenderBG_UI_check();', 1000, true);
+        // Use unique function name to avoid conflicts
+        var checkFnName = 'renderBG_check_' + new Date().getTime();
         
-        // Use global to ensure the task can find the check function
-        $.global.showRenderBG_UI_check = function() {
-            if (win && win.visible) {
-                checkStatus();
-            } else {
-                if (pollTask) {
-                    app.cancelTask(pollTask);
-                    pollTask = null;
+        $.global[checkFnName] = function() {
+            try {
+                if (win && win.visible) {
+                    checkStatus();
+                } else {
+                    if (pollTask != null) {
+                        try {
+                            app.cancelTask(pollTask);
+                        } catch (e) {
+                            // Ignore
+                        }
+                        pollTask = null;
+                    }
                 }
+            } catch (e) {
+                $.writeln('Error in check function: ' + e.toString());
             }
         };
+        
+        try {
+            pollTask = app.scheduleTask('if($.global.' + checkFnName + ') $.global.' + checkFnName + '();', 1000, true);
+        } catch (e) {
+            alert('Error starting progress monitor: ' + e.toString());
+        }
     }
 
     return win;
