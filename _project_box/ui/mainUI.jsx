@@ -65,10 +65,21 @@ function buildUI(thisObj) {
 			? thisObj
 			: new Window('palette', 'Projects Box', undefined, { resizeable: true });
 	panel.spacing = 4;
+	panel.orientation = 'column';
+	panel.alignChildren = ['center', 'top'];
+
+	// Wrapper group to ensure centering in dockable panels
+	var mainGroup = panel.add('group');
+	mainGroup.orientation = 'column';
+	mainGroup.alignChildren = ['center', 'top'];
+	mainGroup.alignment = ['center', 'top'];
+	mainGroup.spacing = 4;
 
 	// ───── First Row: Project, Episode dropdowns and Cut input ─────
-	var firstRow = panel.add('group');
+	var firstRow = mainGroup.add('group');
 	firstRow.orientation = 'row';
+	firstRow.alignChildren = ['center', 'center'];
+	firstRow.alignment = ['center', 'top'];
 	firstRow.spacing = 5;
 
 	// Dropdown to select Project
@@ -269,8 +280,10 @@ function buildUI(thisObj) {
 	};
 
 	// ───── Second Row: Worker name and Take controls ─────
-	var secondRow = panel.add('group');
+	var secondRow = mainGroup.add('group');
 	secondRow.orientation = 'row';
+	secondRow.alignChildren = ['center', 'center'];
+	secondRow.alignment = ['center', 'top'];
 	secondRow.spacing = 5;
 
 	// Worker name input group
@@ -455,6 +468,7 @@ function buildUI(thisObj) {
 
 		if (panel.layout) {
 			panel.layout.layout(true);
+			panel.layout.resize();
 		}
 	}
 
@@ -482,6 +496,7 @@ function buildUI(thisObj) {
 		// Force layout update for AE 2025 visibility
 		if (panel.layout) {
 			panel.layout.layout(true);
+			panel.layout.resize();
 		}
 
 		// Save selected episode index
