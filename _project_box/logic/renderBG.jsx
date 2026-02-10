@@ -150,30 +150,56 @@ function renderBG() {
 	var cmd = '';
 	var aer = null;
 	if (is_win_os) {
-		//windows batchファイル
+		// windows batch file
 		aer = new File(Folder.appPackage.fullName + '/aerender.exe');
+		if (!aer.exists) {
+			// Fallback: try one level up (Support Files folder)
+			aer = new File(Folder.appPackage.parent.fullName + '/Support Files/aerender.exe');
+		}
+
 		shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.bat');
+		
+		// Use chcp 65001 to support UTF-8 in cmd.exe
 		cmd = '@echo off\r\n';
+		cmd += 'chcp 65001 > nul\r\n';
+		
 		// Use powershell to show output in console and write to log file simultaneously (mimic 'tee')
-		// We use single quotes for paths inside the PowerShell command to avoid quote escaping issues
-		var psCmd = "& { & '" + aer.fsName + "' -project '" + tmpAep.fsName + "' -sound ON 2>&1 | Tee-Object -FilePath '" + logFile.fsName + "' }";
-		cmd += 'start "" /b ' + proOp + ' /wait powershell -Command ' + wq(psCmd) + '\r\n';
+		// We use double quotes for paths and escape single quotes if necessary
+		var psAerPath = aer.fsName.replace(/'/g, "''");
+		var psProjPath = tmpAep.fsName.replace(/'/g, "''");
+		var psLogPath = logFile.fsName.replace(/'/g, "''");
+		
+		// Added -close DO_NOT_SAVE_CHANGES and -continueOnMissingFootage for robustness in AE 2025
+		var psCmd = "& { & '" + psAerPath + "' -project '" + psProjPath + "' -sound ON -close DO_NOT_SAVE_CHANGES -continueOnMissingFootage 2>&1 | Tee-Object -FilePath '" + psLogPath + "' }";
+		
+		cmd += 'start "" /b ' + proOp + ' /wait powershell -NoProfile -ExecutionPolicy Bypass -Command ' + wq(psCmd) + '\r\n';
 		cmd += 'del ' + wq(tmpAep.fsName) + '\r\n';
 		cmd += 'del ' + wq(shellCmdFile.fsName) + '\r\n';
 	} else {
 		// Mac shell script
 		aer = new File(Folder.appPackage.parent.fullName + '/aerender');
+		if (!aer.exists) {
+			// Fallback for newer Mac structures
+			aer = new File(Folder.appPackage.fullName + '/MacOS/aerender');
+		}
+		if (!aer.exists) {
+			// Fallback for standard Applications folder structure
+			aer = new File(Folder.appPackage.parent.parent.fullName + '/aerender');
+		}
+
 		shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.command');
 		cmd = '#!/bin/sh\r\n';
-		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON 2>&1 | tee ' + wq(logFile.fsName) + '\r\n';
+		// Added -close DO_NOT_SAVE_CHANGES and -continueOnMissingFootage
+		cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON -close DO_NOT_SAVE_CHANGES -continueOnMissingFootage 2>&1 | tee ' + wq(logFile.fsName) + '\r\n';
 		cmd += 'rm -f ' + wq(tmpAep.fsName) + '\r\n';
 		cmd += 'rm -f ' + wq(shellCmdFile.fsName) + '\r\n';
 	}
 	if (shellCmdFile.exists == true) shellCmdFile.remove();
 	if (shellCmdFile.open('w')) {
 		try {
+			// Write with UTF-8 encoding
 			shellCmdFile.encoding = 'UTF-8';
-			shellCmdFile.lineFeed = 'Unix';
+			shellCmdFile.lineFeed = 'Windows'; // Use Windows line feeds for .bat files
 			shellCmdFile.write(cmd);
 		} catch (e) {
 			alert(e.toString());

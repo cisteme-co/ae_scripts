@@ -126,9 +126,21 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
 
                         // Count lines that indicate a frame was rendered.
                         // aerender outputs: PROGRESS:  0:00:00:00 (1): 1 Frames
-                        var matches = content.match(/^PROGRESS:.*?\(\d+\)/gm);
+                        // In MFR it might have extra info: PROGRESS:  0:00:00:00 (1): 1 Frames (Multi-frame Rendering)
+                        var matches = content.match(/^PROGRESS:.*?\((\d+)\)/gim);
                         if (matches) {
-                            framesDone = matches.length;
+                            // In some cases (MFR), aerender might output multiple progress lines for the same frame
+                            // or different frames. We try to find the maximum frame number mentioned.
+                            var maxFrame = 0;
+                            for (var m = 0; m < matches.length; m++) {
+                                var frameMatch = matches[m].match(/\((\d+)\)/);
+                                if (frameMatch && frameMatch[1]) {
+                                    var fNum = parseInt(frameMatch[1], 10);
+                                    if (fNum > maxFrame) maxFrame = fNum;
+                                }
+                            }
+                            // If we found a max frame number, use it. Otherwise use the count of matches.
+                            framesDone = Math.max(maxFrame, matches.length);
                         }
                     } catch (e) {
                         // Ignore read errors
@@ -183,16 +195,27 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
                                   upperContent.indexOf('FINISHED') !== -1 || 
                                   upperContent.indexOf('BATCH RENDER COMPLETED') !== -1 ||
                                   upperContent.indexOf('TOTAL TIME ELAPSED') !== -1 ||
-                                  upperContent.indexOf('RENDER PROCESSED') !== -1
+                                  upperContent.indexOf('RENDER PROCESSED') !== -1 ||
+                                  upperContent.indexOf('RENDERED SUCCESSFULLY') !== -1 ||
+                                  upperContent.indexOf('COMPLETED SUCCESSFULLY') !== -1
                               )) {
                                   isSuccess = true;
                               }
  
                               // Fallback: If we can't find markers but progress shows all frames are done
                               if (!isSuccess && totalFrames > 0) {
-                                  var finalMatches = finalContent.match(/^PROGRESS:.*?\(\d+\)/gm);
-                                  var finalFramesDone = finalMatches ? finalMatches.length : 0;
-                                  if (finalFramesDone >= totalFrames) {
+                                  var finalMatches = finalContent.match(/^PROGRESS:.*?\((\d+)\)/gim);
+                                  var finalMaxFrame = 0;
+                                  if (finalMatches) {
+                                      for (var fm = 0; fm < finalMatches.length; fm++) {
+                                          var fMatch = finalMatches[fm].match(/\((\d+)\)/);
+                                          if (fMatch && fMatch[1]) {
+                                              var fNum = parseInt(fMatch[1], 10);
+                                              if (fNum > finalMaxFrame) finalMaxFrame = fNum;
+                                          }
+                                      }
+                                  }
+                                  if (finalMaxFrame >= totalFrames || (finalMatches && finalMatches.length >= totalFrames)) {
                                       isSuccess = true;
                                   }
                               }
