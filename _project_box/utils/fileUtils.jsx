@@ -67,39 +67,48 @@ function getNthParentFolder(startFolder, n) {
 }
 
 function getWorkFolder() {
-	var appdataFolder = Folder('~/./AppData/Local/').path;
-	var dropboxFolder = appdataFolder + '/local/Dropbox/';
-	var infoFile = File(dropboxFolder + 'info.json');
+	var localAppData = null;
+	if ($.os.indexOf('Windows') !== -1) {
+		localAppData = $.getenv('LOCALAPPDATA');
+		if (localAppData) {
+			localAppData = localAppData.replace(/\\/g, '/');
+		} else {
+			// Fallback to manual construction
+			localAppData = Folder('~/AppData/Local').fsName.replace(/\\/g, '/');
+		}
+	} else {
+		// Mac or other
+		localAppData = Folder('~/Library/Application Support').fsName.replace(/\\/g, '/');
+	}
+
+	var dropboxFolder = localAppData + '/Dropbox/';
+	var infoFile = new File(dropboxFolder + 'info.json');
 
 	if (infoFile.exists) {
 		var dropboxPath = readDropboxJSON(infoFile);
-		var workFolder = dropboxPath + '/work/';
-		return workFolder;
-	} else {
-		var appdataFolder = Folder('~/../AppData/Local/').path;
-		var dropboxFolder = appdataFolder + '/local/Dropbox/';
-		var infoFile = File(dropboxFolder + 'info.json');
-
-		if (infoFile.exists) {
-			var dropboxPath = readDropboxJSON(infoFile);
+		if (dropboxPath) {
 			var workFolder = dropboxPath + '/work/';
 			return workFolder;
-		} else {
-			var workFolder = '~/OneDrive/work/';
-
-			if (Folder(workFolder).exists) {
-				return workFolder;
-			} else {
-				return 'D:/OneDrive/work/';
-			}
 		}
 	}
+
+	// Fallback 1: OneDrive
+	var oneDriveWork = Folder('~/OneDrive/work/');
+	if (oneDriveWork.exists) {
+		return oneDriveWork.fsName.replace(/\\/g, '/') + '/';
+	}
+
+	// Fallback 2: D drive OneDrive
+	var dDriveOneDrive = new Folder('D:/OneDrive/work/');
+	if (dDriveOneDrive.exists) {
+		return 'D:/OneDrive/work/';
+	}
+
+	return null;
 }
 
 function getProjectCodeName(projectFolder) {
-	var infoFile = new File(
-		projectFolder.path + '/' + projectFolder.name + '/info.json',
-	);
+	var infoFile = new File(projectFolder.fsName + '/info.json');
 	if (infoFile.exists) {
 		infoFile.open('r');
 		var content = infoFile.read();
@@ -118,15 +127,22 @@ function getProjectCodeName(projectFolder) {
 }
 
 function getProjects() {
-	var workFolders = Folder(getWorkFolder()).getFiles();
+	var workFolder = getWorkFolder();
+	if (!workFolder) return [];
+	var workFolders = Folder(workFolder).getFiles();
+	
+	// Sort folders alphabetically to ensure consistent indexing
+	workFolders.sort(function(a, b) {
+		return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+	});
+
 	var projects = [];
 
 	for (var i = 0; i < workFolders.length; i++) {
 		var folder = workFolders[i];
-		if (folder.name[0] != '_') {
-			var compPath =
-				folder.path + '/' + folder.name + '/production/compositing/';
-			var lightPath = folder.path + '/' + folder.name + '/production/lighting/';
+		if (folder instanceof Folder && folder.name[0] != '_') {
+			var compPath = folder.fsName + '/production/compositing/';
+			var lightPath = folder.fsName + '/production/lighting/';
 
 			if (Folder(compPath).exists) {
 				projects.push({
@@ -152,16 +168,16 @@ function getEpisodes(index) {
 
 	if (index >= 0 && index < projectsFolders.length) {
 		var projectObj = projectsFolders[index];
-		var path =
-			projectObj.folder.path +
-			'/' +
-			projectObj.folder.name +
-			'/production/' +
-			projectObj.mode +
-			'/';
+		var path = projectObj.folder.fsName + '/production/' + projectObj.mode + '/';
 
 		if (Folder(path).exists) {
 			var projectEpisodes = Folder(path).getFiles();
+			
+			// Sort episodes alphabetically
+			projectEpisodes.sort(function(a, b) {
+				return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+			});
+
 			for (var e = 0; e < projectEpisodes.length; e++) {
 				if (
 					projectEpisodes[e] instanceof Folder &&
@@ -173,6 +189,15 @@ function getEpisodes(index) {
 		}
 	}
 	return episodes;
+}
+
+function createFolderRecursive(folderPath) {
+	var folder = new Folder(folderPath);
+	if (folder.exists) return true;
+	if (folder.parent && !folder.parent.exists) {
+		if (!createFolderRecursive(folder.parent.fsName)) return false;
+	}
+	return folder.create();
 }
 
 function extractTakeCode(filename) {

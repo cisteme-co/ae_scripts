@@ -35,7 +35,7 @@ function handleNewCut(
 	var rootFolder = File($.fileName).parent.parent.path;
 	var projectObj = getProjects()[selectedIndex];
 	var projectFolder = projectObj.folder;
-	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
+	var projectWorkFolder = projectFolder.fsName;
 
 	var templateFolder = new Folder(
 		projectWorkFolder + '/assets/templates/compositing'
@@ -126,16 +126,16 @@ function handleNewCut(
 	selectGroup.alignment = 'center';
 
 	selectGroup.add('statictext', undefined, 'Project');
-	var projectDrop = selectGroup.add('dropdownlist', undefined, [
-		projectsDrop.selection.text,
-	]);
+	var projectDropText =
+		projectsDrop && projectsDrop.selection ? projectsDrop.selection.text : '---';
+	var projectDrop = selectGroup.add('dropdownlist', undefined, [projectDropText]);
 	projectDrop.selection = 0;
 	projectDrop.enabled = false;
 
 	selectGroup.add('statictext', undefined, 'Episode');
-	var episode = selectGroup.add('dropdownlist', undefined, [
-		episodeDrop.selection.text,
-	]);
+	var episodeDropText =
+		episodeDrop && episodeDrop.selection ? episodeDrop.selection.text : '---';
+	var episode = selectGroup.add('dropdownlist', undefined, [episodeDropText]);
 	episode.selection = 0;
 	episode.enabled = false;
 
@@ -204,6 +204,16 @@ function handleNewCut(
 	createButton.alignment = 'center';
 	createButton.margins = [0, 10, 0, 10];
 	createButton.onClick = function () {
+		// Validation: Ensure project and episode are selected
+		if (!projectsDrop || !projectsDrop.selection || projectsDrop.selection.text === '---') {
+			alert('Please select a project first.');
+			return;
+		}
+		if (!episode || !episode.selection || episode.selection.text === '---') {
+			alert('Please select an episode first.');
+			return;
+		}
+
 		var cuts = [];
 		var seconds = [];
 		var frames = [];

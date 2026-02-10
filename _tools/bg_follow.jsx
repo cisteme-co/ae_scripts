@@ -56,22 +56,25 @@ if (isValid(app.project.activeItem) === true) {
 			var followExpression =
 				'var offsetX = thisLayer.width/2;\n' +
 				'var offsetY = thisLayer.height/2;\n' +
-				'var fps= 1/thisComp.frameDuration;\n' +
+				'var fps = 1/thisComp.frameDuration;\n' +
 				"posterizeTime(fps/effect('Frame Frequency')('ADBE Slider Control-0001'));\n" +
-				'var followX =0;\n' +
-				'var followY =0;\n' +
-				'for(var f=0;f<Math.round(time/thisComp.frameDuration);f++){\n' +
-				"  var DPM=effect('Resolution (in DPI)')('ADBE Slider Control-0001').valueAtTime(f*thisComp.frameDuration)/25.40;\n" +
-				"  var _shift=effect('Speed (mm/k)')('ADBE Slider Control-0001').valueAtTime(f*thisComp.frameDuration);\n" +
-				"  var _angle = effect('Angle')('ADBE Angle Control-0001').valueAtTime(f*thisComp.frameDuration) + 90;\n" +
-				"  if (effect('Opposite')('ADBE Checkbox Control-0001').valueAtTime(f*thisComp.frameDuration) == true) {FollowFlag = 'SLIDE'} else {FollowFlag = 'FOLLOW'}\n" +
-				"  if (FollowFlag == 'FOLLOW') {_angle = _angle +180}\n" +
-				'  followX += DPM*_shift * Math.cos(Math.PI * (_angle / 180));\n' +
-				'  followY += DPM*_shift * Math.sin(Math.PI * (_angle / 180));\n' +
+				'var currentFrame = Math.round(time/thisComp.frameDuration);\n' +
+				"var DPM = effect('Resolution (in DPI)')('ADBE Slider Control-0001')/25.40;\n" +
+				"var _shift = effect('Speed (mm/k)')('ADBE Slider Control-0001');\n" +
+				"var _angle = effect('Angle')('ADBE Angle Control-0001') - 90;\n" +
+				"if (effect('Opposite')('ADBE Checkbox Control-0001') == true) {\n" +
+				'  _angle = _angle + 180;\n' +
 				'}\n' +
-				'var _X= offsetX + followX ;\n' +
-				'var _Y= offsetY + followY ;\n' +
-				'[_X,_Y];';
+				'// Calculate total distance traveled\n' +
+				'var totalX = currentFrame * DPM * _shift * Math.cos(Math.PI * (_angle / 180));\n' +
+				'var totalY = currentFrame * DPM * _shift * Math.sin(Math.PI * (_angle / 180));\n' +
+				'// Wrap ONLY the movement component, not the offset\n' +
+				'var tileWidth = thisLayer.width;\n' +
+				'var tileHeight = thisLayer.height;\n' +
+				'var wrappedX = ((totalX % tileWidth) + tileWidth) % tileWidth;\n' +
+				'var wrappedY = ((totalY % tileHeight) + tileHeight) % tileHeight;\n' +
+				'// Add back the original offset\n' +
+				'[offsetX + wrappedX, offsetY + wrappedY];';
 
 			// Add Offset effect (Loop)
 			var loop = layer.property('Effects').addProperty('ADBE Offset');

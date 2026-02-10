@@ -77,6 +77,7 @@ function buildUI(thisObj) {
 
 	// Dropdown to select Episode within the selected project
 	var episodeDrop = firstRow.add('dropdownlist', undefined, []);
+	episodeDrop.preferredSize.width = 60;
 
 	// Input box to enter Cut number (3-digit zero padded)
 	var cutInput = firstRow.add('edittext', undefined, '000');
@@ -447,19 +448,41 @@ function buildUI(thisObj) {
 	for (var i = 0; i < projects.length; i++) {
 		projectsDrop.add('item', projects[i].name);
 	}
-	projectsDrop.selection = Math.min(savedProject, projects.length - 1);
+	if (projects.length > 0) {
+		var projectToSelect = Math.min(savedProject, projects.length - 1);
+		if (isNaN(projectToSelect) || projectToSelect < 0) projectToSelect = 0;
+		projectsDrop.selection = projectToSelect;
+
+		if (panel.layout) {
+			panel.layout.layout(true);
+		}
+	}
 
 	// ───── Populate episodes dropdown based on project selection ─────
 	function updateEpisodes(projectsDrop, episodeDrop) {
 		episodeDrop.removeAll();
+		if (!projectsDrop.selection) return;
+
 		var episodes = getEpisodes(projectsDrop.selection.index);
 		for (var i = 0; i < episodes.length; i++) {
 			episodeDrop.add('item', episodes[i].name);
 		}
-		episodeDrop.selection = Math.min(
-			savedEpisode,
-			episodeDrop.items.length - 1
-		);
+
+		if (episodes.length > 0) {
+			var episodeToSelect = Math.min(savedEpisode, episodes.length - 1);
+			if (isNaN(episodeToSelect) || episodeToSelect < 0) episodeToSelect = 0;
+			
+			// Reset selection first to force update in some AE versions
+			episodeDrop.selection = null;
+			episodeDrop.selection = episodeToSelect;
+		} else {
+			episodeDrop.selection = null;
+		}
+
+		// Force layout update for AE 2025 visibility
+		if (panel.layout) {
+			panel.layout.layout(true);
+		}
 
 		// Save selected episode index
 		if (episodeDrop.selection) {

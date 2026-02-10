@@ -37,44 +37,33 @@ function fileReplace() {
 		return;
 	}
 
-	// ────────────── 2. Determine mode and locate episode folder ──────────────
+	// ────────────── 2. Determine mode and locate paint/episode folder ──────────────
 	var isLighting = app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
 	var episodeFolder = null;
 
-	if (isLighting) {
-		// Lighting Path: <projectFolder>/production/lighting/<episode>/_doc/paint
-		var lightingPaintPath = projectFolder.fsName + '/production/lighting/' + episode + '/_doc/paint';
-		episodeFolder = new Folder(lightingPaintPath);
+	// Both lighting and compositing paint folders are in <projectFolder>/assets/paint/
+	var paintFolder = new Folder(projectFolder.fsName + '/assets/paint/');
+	if (!paintFolder.exists) {
+		alert('⚠️ Missing paint folder: ' + paintFolder.fsName);
+		return;
+	}
 
-		if (!episodeFolder.exists) {
-			alert('⚠️ Missing paint folder: ' + lightingPaintPath);
-			return;
-		}
-	} else {
-		// Compositing Path: <projectFolder>/assets/paint/
-		var paintFolder = new Folder(projectFolder.fsName + '/assets/paint/');
-		if (!paintFolder.exists) {
-			alert('⚠️ Missing paint folder: ' + paintFolder.fsName);
-			return;
-		}
+	// Find episode folder inside assets/paint (e.g. orb01)
+	var targetName = (project + episode).toLowerCase();
+	var episodeFolders = paintFolder.getFiles(function (f) {
+		return f instanceof Folder;
+	});
 
-		// Find episode folder inside assets/paint (e.g. orb01)
-		var targetName = (project + episode).toLowerCase();
-		var episodeFolders = paintFolder.getFiles(function (f) {
-			return f instanceof Folder;
-		});
-
-		for (var i = 0; i < episodeFolders.length; i++) {
-			if (episodeFolders[i].name.toLowerCase() === targetName) {
-				episodeFolder = episodeFolders[i];
-				break;
-			}
+	for (var i = 0; i < episodeFolders.length; i++) {
+		if (episodeFolders[i].name.toLowerCase() === targetName) {
+			episodeFolder = episodeFolders[i];
+			break;
 		}
+	}
 
-		if (!episodeFolder) {
-			alert('⚠️ Episode folder not found: ' + targetName);
-			return;
-		}
+	if (!episodeFolder) {
+		alert('⚠️ Episode folder not found: ' + targetName);
+		return;
 	}
 
 	// ────────────── Begin Undo Group ──────────────

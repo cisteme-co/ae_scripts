@@ -6,7 +6,7 @@ function openFile(projects, episodes, cutInput, takeInput, mode) {
 	var projectsList = getProjects();
 	var projectObj = projectsList[projects.selection.index];
 	var projectFolder = projectObj.folder;
-	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
+	var projectWorkFolder = projectFolder.fsName;
 	var production = projectWorkFolder + '/production/' + mode + '/';
 	var episode = episodes.selection.text;
 	var subFolder = mode === 'lighting' ? 'progress' : 'cuts';

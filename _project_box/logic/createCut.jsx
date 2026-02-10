@@ -14,13 +14,34 @@ function createCut(
 	mode
 ) {
 	// ──────────────
+	// Validation
+	// ──────────────
+	if (!project || project.index === undefined) {
+		alert('Invalid project selection.');
+		return;
+	}
+	if (!episode || !episode.text) {
+		alert('Invalid episode selection.');
+		return;
+	}
+	if (!cuts || cuts.length === 0) {
+		alert('No cuts specified.');
+		return;
+	}
+
+	// ──────────────
 	// Setup paths and variables
 	// ──────────────
 	mode = mode || 'compositing';
-	var projectObj = getProjects()[project.index];
+	var projects = getProjects();
+	if (!projects || project.index >= projects.length) {
+		alert('Could not find project information.');
+		return;
+	}
+	var projectObj = projects[project.index];
 	var projectFolder = projectObj.folder;
 	var codeName = getProjectCodeName(projectFolder);
-	var projectWorkFolder = projectFolder.path + '/' + projectFolder.name;
+	var projectWorkFolder = projectFolder.fsName;
 	var production = projectWorkFolder + '/production/' + mode + '/';
 	var check = projectWorkFolder + '/to_send/撮影/check';
 	var templateFiles = projectWorkFolder + '/assets/templates/compositing';
@@ -111,11 +132,21 @@ function createCut(
 	// ──────────────
 	// Get important comps
 	// ──────────────
-	var templateName = thisTemplate.name.split('.')[0];
+	var templateName = decodeURI(thisTemplate.name).split('.')[0];
 	var workComp = getComp('_work');
 	var cameraComp = getComp('camera');
 	var filtersComp = getComp('filters');
 	var renderComp = getComp(templateName);
+
+	if (!workComp || !cameraComp || !filtersComp || !renderComp) {
+		alert('Missing core compositions in template:\n' +
+			(!workComp ? '- _work\n' : '') +
+			(!cameraComp ? '- camera\n' : '') +
+			(!filtersComp ? '- filters\n' : '') +
+			(!renderComp ? '- ' + templateName + '\n' : ''));
+		return;
+	}
+
 	var base3D = getComp('000_3d');
 	if (base3D) base3D.name = allCuts + '_3d';
 
@@ -134,16 +165,19 @@ function createCut(
 		newWork.name = workComp.name + '_' + cut;
 		newWork.parentFolder = cutFolder;
 		newWork.duration = duration;
+		retimeCompLayers(newWork, duration);
 
 		var newCamera = cameraComp.duplicate();
 		newCamera.name = cameraComp.name + '_' + cut;
 		newCamera.parentFolder = cutFolder;
 		newCamera.duration = duration;
+		retimeCompLayers(newCamera, duration);
 
 		var newFilters = filtersComp.duplicate();
 		newFilters.name = filtersComp.name + '_' + cut;
 		newFilters.parentFolder = cutFolder;
 		newFilters.duration = duration;
+		retimeCompLayers(newFilters, duration);
 
 		var newRender = renderComp.duplicate();
 		newRender.name = renderComp.name
@@ -151,6 +185,7 @@ function createCut(
 			.replace('00', episode.text)
 			.replace('000', cut);
 		newRender.duration = bold + duration;
+		retimeCompLayers(newRender, bold + duration);
 
 		replaceComp('_work', newCamera, newWork);
 		replaceComp('camera', newFilters, newCamera);
@@ -180,21 +215,17 @@ function createCut(
 
 			var rendersPath =
 				production + '/' + episode.text + '/renders/' + dateSuffix;
+			if (!createFolderRecursive(rendersPath)) {
+				alert('Failed to create render folder: ' + rendersPath);
+				return;
+			}
 			var renderFolder = new Folder(rendersPath);
-			if (!renderFolder.exists) {
-				if (!renderFolder.create()) {
-					alert('Failed to create render folder: ' + renderFolder.fsName);
-					return;
-				}
-			}
 
-			var checkFolder = new Folder(check);
-			if (!checkFolder.exists) {
-				if (!checkFolder.create()) {
-					alert('Failed to create check folder: ' + checkFolder.fsName);
-					return;
-				}
+			if (!createFolderRecursive(check)) {
+				alert('Failed to create check folder: ' + check);
+				return;
 			}
+			var checkFolder = new Folder(check);
 
 			// --- Add ProRes output ---
 			var rqItem = app.project.renderQueue.items.add(newRender);
@@ -252,10 +283,11 @@ function createCut(
 	renameWorker(workerInput.text);
 
 	// ──────────────
-	// Create cuts folder if missing
+	// Create cuts folder if missing (recursively)
 	// ──────────────
-	if (!Folder(newFilePath).exists) {
-		new Folder(newFilePath).create();
+	if (!createFolderRecursive(newFilePath)) {
+		alert('Failed to create cuts folder: ' + newFilePath);
+		return;
 	}
 
 	// ──────────────

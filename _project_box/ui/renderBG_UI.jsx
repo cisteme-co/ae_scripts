@@ -16,7 +16,9 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
         cancelled: { en: 'Render cancelled.', ja: 'レンダーが中止されました。' },
         rendering: { en: 'Rendering... ', ja: 'レンダリング中... ' },
         finished: { en: 'Finished!', ja: '完了！' },
-        error: { en: 'Error cancelling render: ', ja: 'レンダー中止中にエラーが発生しました: ' }
+        error: { en: 'Error cancelling render: ', ja: 'レンダー中止中にエラーが発生しました: ' },
+        renderSuccess: { en: 'Render completed successfully!', ja: 'レンダリングが正常に完了しました！' },
+        renderFailed: { en: 'Render failed or crashed. Please check the log for details.', ja: 'レンダリングが失敗またはクラッシュしました。詳細はログを確認してください。' }
     };
 
     function t(key) {
@@ -64,6 +66,7 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
     cancelBtn.preferredSize.height = 30;
     
     var pollTask = null;
+    var renderOutcomeDetected = false;
 
     cancelBtn.onClick = function() {
         if (confirm(t('confirmCancel'))) {
@@ -147,7 +150,8 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
 
         if (tempFilePath) {
             var f = new File(tempFilePath);
-            if (!f.exists) {
+            if (!f.exists && !renderOutcomeDetected) {
+                renderOutcomeDetected = true;
                 // The batch file deletes the temp AEP when it finishes.
                 // If it's gone, the render is likely done.
                 if (pollTask) app.cancelTask(pollTask);
@@ -155,8 +159,65 @@ function showRenderBG_UI(compNames, tempFilePath, totalFrames, logFilePath) {
                 progressBar.value = 100;
                 progressText.text = t('finished');
                 
+                // Final check of the log file to determine success/failure
+                var isSuccess = false;
+                if (logFilePath) {
+                    var lf = new File(logFilePath);
+                    if (lf.exists) {
+                        if (is_win_os) lf.encoding = 'UTF-16';
+                        if (lf.open('r')) {
+                            var finalContent = lf.read();
+                            lf.close();
+                            // If content seems empty or garbage (not containing common markers), try UTF-8
+                             var isGarbage = !finalContent || (finalContent.indexOf('PROGRESS') === -1 && finalContent.indexOf('FINISHED') === -1);
+                             if (isGarbage) {
+                                 lf.encoding = 'UTF-8';
+                                 if (lf.open('r')) {
+                                     finalContent = lf.read();
+                                     lf.close();
+                                 }
+                             }
+                             // Check for success markers (case-insensitive)
+                              var upperContent = finalContent.toUpperCase();
+                              if (upperContent && (
+                                  upperContent.indexOf('FINISHED') !== -1 || 
+                                  upperContent.indexOf('BATCH RENDER COMPLETED') !== -1 ||
+                                  upperContent.indexOf('TOTAL TIME ELAPSED') !== -1 ||
+                                  upperContent.indexOf('RENDER PROCESSED') !== -1
+                              )) {
+                                  isSuccess = true;
+                              }
+ 
+                              // Fallback: If we can't find markers but progress shows all frames are done
+                              if (!isSuccess && totalFrames > 0) {
+                                  var finalMatches = finalContent.match(/^PROGRESS:.*?\(\d+\)/gm);
+                                  var finalFramesDone = finalMatches ? finalMatches.length : 0;
+                                  if (finalFramesDone >= totalFrames) {
+                                      isSuccess = true;
+                                  }
+                              }
+
+                              // Final check: if there's a clear error message, mark as failure
+                              if (upperContent && (
+                                  upperContent.indexOf('ERROR:') !== -1 || 
+                                  upperContent.indexOf('AFTER EFFECTS ERROR:') !== -1 ||
+                                  upperContent.indexOf('AERENDER ERROR:') !== -1
+                              )) {
+                                  isSuccess = false;
+                              }
+                        }
+                    }
+                }
+
+                // Show alert based on outcome
+                if (isSuccess) {
+                    alert(t('renderSuccess'));
+                } else {
+                    alert(t('renderFailed'));
+                }
+
                 // Delay closing a bit so user can see 100%
-                app.scheduleTask('if($.global.renderBG_win) $.global.renderBG_win.close();', 1000, false);
+                app.scheduleTask('if($.global.renderBG_win) $.global.renderBG_win.close();', 100, false);
                 
                 // Cleanup log file
                 if (logFilePath) {

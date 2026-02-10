@@ -35,7 +35,7 @@ function incrementTake(take) {
 	// 2. PREPARE NEW FILENAME
 	// ───────────────────────────────────────────────
 	var newSave = fileName.replace(oldTake, take);
-	var newSaveFile = File(app.project.file.path + '/' + newSave);
+	var newSaveFile = new File(app.project.file.parent.fsName + '/' + newSave);
 
 	// ───────────────────────────────────────────────
 	// 3. RENAME COMPOSITIONS WITH OLD TAKE

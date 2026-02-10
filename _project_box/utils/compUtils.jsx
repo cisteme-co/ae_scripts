@@ -110,3 +110,46 @@ function getLayer(comp, layerName) {
 		}
 	}
 }
+
+/**
+ * Retimes all layers in a composition to the specified duration.
+ */
+function retimeCompLayers(comp, duration) {
+	if (!(comp instanceof CompItem)) return;
+
+	for (var i = 1; i <= comp.numLayers; i++) {
+		var layer = comp.layers[i];
+		try {
+			// If it's a comp or footage layer, extend it
+			if (
+				layer.source &&
+				(layer.source instanceof CompItem || layer.source instanceof FootageItem)
+			) {
+				// We usually want to extend layers that start at 0
+				if (layer.inPoint <= 0.1) {
+					layer.inPoint = 0;
+					layer.outPoint = duration;
+				}
+			} else {
+				// For other layers (Adjustment, Null, etc.), just extend if they start at 0
+				if (layer.inPoint <= 0.1) {
+					layer.outPoint = duration;
+				}
+			}
+
+			// Handle Time Remapping if enabled
+			if (layer.timeRemapEnabled) {
+				var tr = layer.timeRemap;
+				if (tr.numKeys > 0) {
+					var lastKeyIndex = tr.numKeys;
+					var lastKeyValue = tr.keyValue(lastKeyIndex);
+					// Move the last keyframe to the new duration if it was at the old end
+					// This is a bit complex to do perfectly, but often we want the last key at the end
+					// tr.setValueAtTime(duration, lastKeyValue);
+				}
+			}
+		} catch (e) {
+			// Ignore errors for layers that don't support these operations
+		}
+	}
+}
