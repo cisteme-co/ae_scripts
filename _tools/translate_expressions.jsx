@@ -22,11 +22,11 @@
 
 		// JSON path
 		var jsonFile = new File(
-			scriptFolder.fsName + '/utils/effects_localized.json'
+			scriptFolder.fsName + '/utils/effects_localized.json',
 		);
 		if (!jsonFile.exists) {
 			alert(
-				'⚠ Missing effects_localized.json\nNo translation will be performed.'
+				'⚠ Missing effects_localized.json\nNo translation will be performed.',
 			);
 			return map;
 		}
@@ -61,37 +61,59 @@
 	function replaceNamesInExpression(expr, nameMap) {
 		if (!expr || !nameMap) return expr;
 
-		// 1. Replace effect names
-		for (var key in nameMap) {
-			if (!nameMap.hasOwnProperty(key)) continue;
-			var matchName = nameMap[key] || key; // fallback to original if missing
+		// Only replace effect property names:
+		// effect("Effect Name")("Property Name")
 
-			var doubleQuoted = new RegExp('"' + escapeRegExp(key) + '"', 'g');
-			var singleQuoted = new RegExp("'" + escapeRegExp(key) + "'", 'g');
+		expr = expr.replace(
+			/(effect\s*\(\s*["'][^"']+["']\s*\)\s*\(\s*["'])([^"']+)(["']\s*\))/g,
+			function (match, prefix, propName, suffix) {
+				if (nameMap.hasOwnProperty(propName)) {
+					return prefix + nameMap[propName] + suffix;
+				}
 
-			expr = expr.replace(doubleQuoted, '"' + matchName + '"');
-			expr = expr.replace(singleQuoted, '"' + matchName + '"');
-		}
-
-		// 2. Replace localized Dropdown Menu "Menu" property
-		var menuPropNameMap = {
-			en_US: 'Menu',
-			fr_FR: 'Menu',
-			ja_JP: 'メニュー',
-			// Add more if needed
-		};
-		var lang = app.language || 'en_US';
-		var localizedMenu = menuPropNameMap[lang] || menuPropNameMap['en_US'];
-
-		// Matches ("Menu") or ('Menu') exactly
-		var menuPattern = /(\(["'])Menu(['"]\))/g;
-		expr = expr.replace(menuPattern, function (match, p1, p2) {
-			return p1 + localizedMenu + p2;
-		});
+				return match;
+			},
+		);
 
 		return expr;
 	}
 
+	function replaceSliderControl() {
+		app.beginUndoGroup('Rename Slider Control to スライダー制御');
+
+		var proj = app.project;
+		if (!proj) return;
+
+		for (var i = 1; i <= proj.numItems; i++) {
+			var item = proj.item(i);
+			if (!(item instanceof CompItem)) continue;
+
+			for (var l = 1; l <= item.numLayers; l++) {
+				var layer = item.layer(l);
+				var effects = layer.property('ADBE Effect Parade');
+				if (!effects) continue;
+
+				for (var e = 1; e <= effects.numProperties; e++) {
+					var fx = effects.property(e);
+
+					// Only rename if the visible name is exactly "Slider Control"
+					if (fx.name === 'Slider Control') {
+						fx.name = 'スライダー制御';
+					}
+
+					if (fx.name === 'Layer Control') {
+						fx.name = 'レイヤー制御';
+					}
+
+					if (fx.name === 'Warp') {
+						fx.name = 'ワープ';
+					}
+				}
+			}
+		}
+
+		app.endUndoGroup();
+	}
 	// ─────────────────────────────────────────────
 	// Recursively process a property and its subproperties
 	// ─────────────────────────────────────────────
@@ -100,6 +122,7 @@
 			try {
 				var originalExpr = prop.expression;
 				var updatedExpr = replaceNamesInExpression(originalExpr, nameMap);
+				replaceSliderControl();
 				if (originalExpr !== updatedExpr) {
 					prop.expression = updatedExpr;
 					$.writeln('✔ Updated: ' + prop.name);

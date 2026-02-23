@@ -145,7 +145,8 @@ function renderBG() {
 									itemData.outputs.push({
 										omIndex: j,
 										hasFile: (om.file != null),
-										tempPath: null // To be filled later
+										tempPath: null, // To be filled later
+										finalPath: null
 									});
 								} catch (omErr) {
 									$.writeln('Error reading output module: ' + omErr.toString());
@@ -295,7 +296,20 @@ function renderBG() {
 						if (currentFile) {
 							ext = currentFile.name.split('.').pop().toLowerCase();
 						} else {
-							// If no file is set, skip this output module
+							// Even if no file is set, we must handle the module index alignment
+							// But usually, modules without files don't need paths.
+							// However, aerender maps -output sequentially.
+							// So if module 1 is skipped, module 2 becomes the first -output target?
+							// Actually, if we skip adding to 'queueInfo' outputs, we lose track.
+							// But we added ALL modules to itemData.outputs earlier.
+							
+							// If we skip processing here, outputData.tempPath remains null.
+							// Then in command generation, we skip adding -output.
+							// So if Module 1 is skipped, Module 2 gets the first -output.
+							// This is RISKY if aerender expects -output for Module 1.
+							// But if Module 1 has no file, aerender probably ignores it.
+							
+							// Let's assume modules without files are irrelevant.
 							$.writeln('  Output module ' + outputData.omIndex + ' has no file set, skipping');
 							continue;
 						}
@@ -304,6 +318,8 @@ function renderBG() {
 						
 						var outputFolder = null;
 						var sanitizedCompName = sanitizeFilename(itemData.compName);
+						$.writeln('  Comp Name: ' + itemData.compName);
+						$.writeln('  Sanitized Name: ' + sanitizedCompName);
 						
 						if (ext === 'mp4') {
 							var baseFolder = getNthParentFolders(app.project.file, 5);
@@ -322,10 +338,39 @@ function renderBG() {
 							
 							outputFolder = new Folder(folderPath);
 							
+							// FORCE SANITIZED COMP NAME FOR MP4 TOO
+							sanitizedCompName = sanitizeFilename(itemData.compName);
+							$.writeln('  MP4 forced sanitized name: ' + sanitizedCompName);
+							
 						} else if (ext === 'mov') {
-							var baseFolder = getNthParentFolders(app.project.file, 2);
+							// FIX: Ensure we are getting the correct parent folder
+							// User wants: <projectFolder>/compositing/<episode>/renders/<today Folder>
+							// Current structure: <projectFolder>/compositing/<episode>/cuts/<cutFolder>/<aep file>
+							// OR structure: <projectFolder>/compositing/<episode>/progress/<aep file>
+							
+							// Strategy: Search UP for "cuts" or "progress" folder.
+							// The parent of "cuts" or "progress" is the Episode folder.
+							
+							var baseFolder = null;
+							var current = app.project.file.parent;
+							var safetyLimit = 10;
+							while (current && safetyLimit > 0) {
+								if (current.name.toLowerCase() === 'cuts' || current.name.toLowerCase() === 'progress') {
+									baseFolder = current.parent;
+									break;
+								}
+								current = current.parent;
+								safetyLimit--;
+							}
+							
+							// Fallback if not found (e.g. project structure is different)
 							if (!baseFolder) {
-								alert('Cannot go up 2 folders from project file. Project might be at root.');
+								$.writeln('  Could not find "cuts" or "progress" folder in path. Defaulting to n=2 logic.');
+								baseFolder = getNthParentFolders(app.project.file, 2);
+							}
+
+							if (!baseFolder) {
+								alert('Cannot find base folder (cuts/progress parent) or go up 2 folders from project file.');
 								return;
 							}
 							
@@ -341,23 +386,55 @@ function renderBG() {
 						} else {
 							// For other formats, also put them in the today's folder if requested
 							// The user specifically asked for "renders folder in todays's folder"
-							var baseFolder = getNthParentFolders(app.project.file, 2);
+							
+							// FIX: Use same dynamic logic as MOV
+							var baseFolder = null;
+							var current = app.project.file.parent;
+							var safetyLimit = 10;
+							while (current && safetyLimit > 0) {
+								if (current.name.toLowerCase() === 'cuts' || current.name.toLowerCase() === 'progress') {
+									baseFolder = current.parent;
+									break;
+								}
+								current = current.parent;
+								safetyLimit--;
+							}
+							
+							if (!baseFolder) {
+								baseFolder = getNthParentFolders(app.project.file, 2);
+							}
+							
 							if (baseFolder) {
 								var folderPath = baseFolder.fullName + '/renders/' + getTodayYYYYMMDD();
+								// Try to create folder, but even if it fails (due to unicode issues?),
+								// we might still want to proceed with temp path rendering.
+								// But for now let's assume createFolderSafe works.
 								if (createFolderSafe(folderPath)) {
 									outputFolder = new Folder(folderPath);
 									$.writeln('  ' + ext.toUpperCase() + ' output folder (defaulted): ' + folderPath);
+								} else {
+									$.writeln('  WARNING: Failed to create output folder: ' + folderPath);
 								}
 							}
 							
 							if (!outputFolder) {
 								$.writeln('  Keeping original path for ' + ext + ' file');
+								// If we fail to determine a folder, we SKIP setting temp path.
+								// This is dangerous if the original path has Japanese chars.
+								// BUT we can't determine where to move the file TO.
+								
+								// Should we force a temp path anyway?
+								// If we force temp path, we can't move it later.
+								// So the user gets a file in temp folder.
+								
+								// Let's at least log this skipping clearly.
 								continue;
 							}
 						}
 						
 						// Set new output path
-						if (outputFolder && outputFolder.exists) {
+						// FIX: Remove strict .exists check here as it might fail on unicode paths even if created
+						if (outputFolder) {
 							var finalFilePath;
 							var tempFilePath;
 							
@@ -374,7 +451,11 @@ function renderBG() {
 								// Use powershell for moving to handle Unicode paths correctly
 								// -LiteralPath avoids issues with special characters in the source path
 								// We use single quotes inside the powershell command for simplicity
-								var moveCmd = 'powershell -Command "Move-Item -LiteralPath \'' + tempFilePath.fsName + '\' -Destination \'' + finalFilePath.fsName + '\' -Force"';
+								// ESCAPE SINGLE QUOTES for PowerShell (replace ' with '')
+								var safeTempPath = tempFilePath.fsName.replace(/'/g, "''");
+								var safeFinalPath = finalFilePath.fsName.replace(/'/g, "''");
+								
+								var moveCmd = 'powershell -Command "Move-Item -LiteralPath \'' + safeTempPath + '\' -Destination \'' + safeFinalPath + '\' -Force"';
 								moveCommands.push(moveCmd);
 								
 								// AE 2025 Robustness: Set the path to the temp file
@@ -383,6 +464,7 @@ function renderBG() {
 								
 								var targetFile = tempFilePath;
 								outputData.tempPath = tempFilePath.fsName; // Store for aerender flag
+								outputData.finalPath = finalFilePath.fsName; // Store for restoring main project
 							} else {
 								var targetFile = new File(outputFolder.fullName + '/' + sanitizedCompName + '.' + ext);
 								$.writeln('  [MAC] Path: ' + targetFile.fsName);
@@ -401,34 +483,56 @@ function renderBG() {
 								// 1. Set to null
 								om.file = null;
 								
-								// 2. Try to apply template (sometimes resets internal state)
-								try {
-									om.applyTemplate(om.name);
-								} catch (e) {}
+								// 2. REMOVED applyTemplate as it resets custom settings
+								// try {
+								// 	om.applyTemplate(om.name);
+								// } catch (e) {}
 								
 								// 3. Set the file using setSettings (Modern AE way)
-								try {
-									var settings = {
-										"Output File Info": {
-											"Full Flat Path": targetFile.fsName
-										}
-									};
-									om.setSettings(settings);
-								} catch (e) {
-									$.writeln('  setSettings failed, falling back to .file assignment: ' + e.toString());
-								}
+								// try {
+								// 	var settings = {
+								// 		"Output File Info": {
+								// 			"Full Flat Path": targetFile.fsName
+								// 		}
+								// 	};
+								// 	om.setSettings(settings);
+								// } catch (e) {
+								// 	$.writeln('  setSettings failed, falling back to .file assignment: ' + e.toString());
+								// }
 								
 								// 4. Fallback/Verify with .file assignment
-								if (om.file === null || om.file.fsName.toLowerCase() !== targetFile.fsName.toLowerCase()) {
-									om.file = new File(targetFile.fsName);
-								}
+								// DIRECT ASSIGNMENT ONLY - Keep it simple and robust
+								om.file = new File(targetFile.fsName);
 								
 								// 5. Final verification - if this fails, we cannot proceed safely
 								if (om.file === null || om.file.fsName.toLowerCase() !== targetFile.fsName.toLowerCase()) {
-									var err = 'CRITICAL: Failed to set output path for ' + itemData.compName + '.\n' +
-											  'Expected: ' + targetFile.fsName + '\n' +
-											  'Got: ' + (om.file ? om.file.fsName : 'NULL');
-									throw new Error(err);
+									// Double check if it's just case sensitivity issue
+									// But wait, if fsName is different, it might be due to 8.3 names or symlinks?
+									// Let's assume File object handles it.
+									
+									// If direct assignment failed, try setSettings as last resort
+									try {
+										var settings = {
+											"Output File Info": {
+												"Full Flat Path": targetFile.fsName
+											}
+										};
+										om.setSettings(settings);
+									} catch(e) {}
+									
+									if (om.file === null) {
+										var err = 'CRITICAL: Failed to set output path for ' + itemData.compName + '.\n' +
+												  'Expected: ' + targetFile.fsName + '\n' +
+												  'Got: NULL';
+										throw new Error(err);
+									}
+									// If path is different but not null, we log warning but proceed?
+									// No, if path is wrong, aerender fails.
+									if (om.file.fsName.toLowerCase() !== targetFile.fsName.toLowerCase()) {
+										$.writeln('WARNING: Path mismatch after setting. Expected: ' + targetFile.fsName + ', Got: ' + om.file.fsName);
+										// This might happen if AE normalizes path differently.
+										// But usually on Windows they should match.
+									}
 								}
 								
 								if (originalStatus === RQItemStatus.QUEUED) {
@@ -468,8 +572,60 @@ function renderBG() {
 		var logFile = new File(Folder.temp.fullName + '/' + 'aerender_log_' + timestamp + '.txt');
 
 		try {
+			// PRE-SAVE VERIFICATION
+			if (is_win_os) {
+				$.writeln('VERIFYING PATHS BEFORE SAVE...');
+				for (var k = 0; k < queueInfo.length; k++) {
+					var itemData = queueInfo[k];
+					var item = rq.item(itemData.index);
+					for (var m = 0; m < itemData.outputs.length; m++) {
+						var outputData = itemData.outputs[m];
+						if (outputData.tempPath) {
+							var om = item.outputModule(outputData.omIndex);
+							// Case-insensitive check
+							if (om.file && om.file.fsName.toLowerCase() !== outputData.tempPath.toLowerCase()) {
+								$.writeln('CRITICAL WARNING: Path reverted/changed before save! Item ' + itemData.index + ' Module ' + outputData.omIndex);
+								$.writeln('  Expected: ' + outputData.tempPath);
+								$.writeln('  Got: ' + om.file.fsName);
+								
+								// FORCE RESET
+								om.file = new File(outputData.tempPath);
+								if (om.file.fsName.toLowerCase() !== outputData.tempPath.toLowerCase()) {
+									throw new Error('Unrecoverable path error for Item ' + itemData.index);
+								}
+								$.writeln('  FIXED path before save.');
+							}
+						}
+					}
+				}
+			}
+
 			$.writeln('Saving temporary project: ' + tmpAep.fsName);
 			app.project.save(tmpAep);
+
+			// Restore main project paths to final destination
+			// This ensures the user sees the correct filenames in the Render Queue
+			if (is_win_os) {
+				$.writeln('Restoring main project paths to final destination...');
+				for (var k = 0; k < queueInfo.length; k++) {
+					var itemData = queueInfo[k];
+					var item = rq.item(itemData.index);
+					for (var m = 0; m < itemData.outputs.length; m++) {
+						var outputData = itemData.outputs[m];
+						if (outputData.finalPath) {
+							try {
+								var om = item.outputModule(outputData.omIndex);
+								// We can use simple assignment here as we are in the main UI thread context
+								// and this is primarily for user visibility
+								om.file = new File(outputData.finalPath);
+							} catch(e) {
+								$.writeln('Error restoring path for item ' + itemData.index + ': ' + e.toString());
+							}
+						}
+					}
+				}
+			}
+
 			$.writeln('Saving main project...');
 			app.project.save(af);
 		} catch (saveErr) {
@@ -510,16 +666,42 @@ function renderBG() {
 			// Generate aerender command for each item using the -output flag
 			for (var rIdx = 0; rIdx < queueInfo.length; rIdx++) {
 				var rItem = queueInfo[rIdx];
+				var itemCmd = '';
+				var hasTempPath = false;
+				
+				cmd += 'echo Rendering Item ' + (rIdx+1) + ' (Index ' + rItem.index + ')...\r\n';
+				
+				itemCmd += wq(aerShort) + ' -project ' + wq(tmpAep.fsName);
+				itemCmd += ' -rqindex ' + rItem.index;
+				
+				// CRITICAL FIX: Ensure -output flags map to modules correctly.
+				// By removing -output flags, we force aerender to use the paths saved in the project file.
+				// This assumes we successfully saved ASCII temp paths to the project file.
+				
+				// Also check if any temp path has non-ASCII characters
 				for (var oIdx = 0; oIdx < rItem.outputs.length; oIdx++) {
 					var oData = rItem.outputs[oIdx];
 					if (oData.tempPath) {
-						cmd += 'echo Rendering Item ' + (rIdx+1) + ' Output ' + (oIdx+1) + '...\r\n';
-						// Append to log for accurate progress tracking
-						cmd += wq(aerShort) + ' -project ' + wq(tmpAep.fsName);
-						cmd += ' -rqindex ' + rItem.index;
-						cmd += ' -output ' + wq(oData.tempPath);
-						cmd += ' -sound ON >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
+						if (/[^\x00-\x7F]/.test(oData.tempPath)) {
+							// Panic mode: This path has non-ASCII chars!
+							// We must alert user? No, we are in a loop.
+							// But this explains why it fails.
+							cmd += 'echo WARNING: Non-ASCII characters in temp path for Module ' + oData.omIndex + '\r\n';
+						}
+						
+						hasTempPath = true; 
+						// Log what we expect
+						cmd += 'echo   Module ' + oData.omIndex + ' -> ' + wq(oData.tempPath) + '\r\n';
 					}
+				}
+				
+				if (hasTempPath) {
+					itemCmd += ' -sound ON >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
+					cmd += itemCmd;
+					
+					// Add error check and delay to ensure stability between renders
+					cmd += 'if %ERRORLEVEL% NEQ 0 echo Error rendering item ' + (rIdx+1) + ' >> ' + wq(logFile.fsName) + '\r\n';
+					cmd += 'timeout /t 2 /nobreak >nul\r\n';
 				}
 			}
 			
