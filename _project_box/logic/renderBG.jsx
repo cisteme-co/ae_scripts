@@ -16,18 +16,27 @@ function getLanguage() {
 
 function alertSaveProjectFirst() {
 	var lang = getLanguage();
-	var msg = (lang === 'ja') ? 'プロジェクトを保存してください。' : 'Please save the project first.';
+	var msg =
+		lang === 'ja'
+			? 'プロジェクトを保存してください。'
+			: 'Please save the project first.';
 	alert(msg);
 }
 
 function alertNoValidRenderQueue() {
 	var lang = getLanguage();
-	var msg = (lang === 'ja') ? '有効なレンダーキューがありません。' : 'There is no valid render queue.';
+	var msg =
+		lang === 'ja'
+			? '有効なレンダーキューがありません。'
+			: 'There is no valid render queue.';
 	alert(msg);
 }
 
 function getNthParentFolders(startFileOrFolder, n) {
-	var folder = startFileOrFolder instanceof Folder ? startFileOrFolder : startFileOrFolder.parent;
+	var folder =
+		startFileOrFolder instanceof Folder
+			? startFileOrFolder
+			: startFileOrFolder.parent;
 	for (var i = 0; i < n; i++) {
 		if (folder && folder.parent != null) {
 			folder = folder.parent;
@@ -48,7 +57,10 @@ function getShortPath(fileOrFolder) {
 	if ($.os.toLowerCase().indexOf('windows') < 0) return fileOrFolder.fsName;
 	try {
 		var cmd = 'cmd /c "for %I in ("' + fileOrFolder.fsName + '") do echo %~sI"';
-		var shortPath = system.callSystem(cmd).replace(/[\r\n]/g, '').trim();
+		var shortPath = system
+			.callSystem(cmd)
+			.replace(/[\r\n]/g, '')
+			.trim();
 		if (shortPath && shortPath.length > 0 && shortPath.indexOf('?') === -1) {
 			return shortPath;
 		}
@@ -66,18 +78,19 @@ function getTodayYYYYMMDD() {
 
 function createFolderSafe(folderPath) {
 	try {
-		var folder = (folderPath instanceof Folder) ? folderPath : new Folder(folderPath);
-		
+		var folder =
+			folderPath instanceof Folder ? folderPath : new Folder(folderPath);
+
 		if (folder.exists) {
 			return true;
 		}
-		
+
 		if (folder.parent && !folder.parent.exists) {
 			if (!createFolderSafe(folder.parent)) {
 				return false;
 			}
 		}
-		
+
 		var result = folder.create();
 		return result;
 	} catch (e) {
@@ -108,7 +121,7 @@ function renderBG() {
 		var compNames = [];
 		var totalFrames = 0;
 		var queueInfo = [];
-		
+
 		// FIXED VALIDATION: Just check if items are queued, don't validate output paths
 		if (rq.numItems > 0) {
 			for (var i = 1; i <= rq.numItems; i++) {
@@ -118,20 +131,20 @@ function renderBG() {
 						var itemData = {
 							index: i,
 							compName: item.comp.name,
-							outputs: []
+							outputs: [],
 						};
-						
+
 						compNames.push(item.comp.name);
-						
+
 						var frameDuration = item.comp.frameDuration;
 						var start = item.timeStart;
 						var end = item.timeEnd;
-						
+
 						if (end <= start) {
 							start = item.comp.workAreaStart;
 							end = start + item.comp.workAreaDuration;
 						}
-						
+
 						var itemFrames = Math.ceil((end - start) / frameDuration);
 						if (itemFrames <= 0) itemFrames = 1;
 						totalFrames += itemFrames;
@@ -144,16 +157,16 @@ function renderBG() {
 									// Just check if output module exists, not if file is set
 									itemData.outputs.push({
 										omIndex: j,
-										hasFile: (om.file != null),
+										hasFile: om.file != null,
 										tempPath: null, // To be filled later
-										finalPath: null
+										finalPath: null,
 									});
 								} catch (omErr) {
 									$.writeln('Error reading output module: ' + omErr.toString());
 								}
 							}
 						}
-						
+
 						queueInfo.push(itemData);
 					}
 				} catch (itemErr) {
@@ -161,13 +174,13 @@ function renderBG() {
 				}
 			}
 		}
-		
+
 		// Check if we have any queued items
 		if (queueInfo.length === 0) {
 			alertNoValidRenderQueue();
 			return;
 		}
-		
+
 		// ──────────────
 		// CONFIRMATION DIALOG (ScriptUI with Checkboxes)
 		// Only show if there are 2 or more items in the queue
@@ -176,14 +189,19 @@ function renderBG() {
 			var lang = getLanguage();
 			var uiStrings = {
 				title: { en: 'Select Items to Render', ja: 'レンダリング項目の選択' },
-				msg: { en: 'Select the items you want to render in the background:', ja: '背景でレンダリングする項目を選択してください：' },
+				msg: {
+					en: 'Select the items you want to render in the background:',
+					ja: '背景でレンダリングする項目を選択してください：',
+				},
 				start: { en: 'Start Render', ja: 'レンダー開始' },
 				cancel: { en: 'Cancel', ja: 'キャンセル' },
 				selectAll: { en: 'Select All', ja: 'すべて選択' },
-				selectNone: { en: 'Select None', ja: 'すべて解除' }
+				selectNone: { en: 'Select None', ja: 'すべて解除' },
 			};
-			
-			var t = function(key) { return uiStrings[key][lang] || uiStrings[key]['en']; };
+
+			var t = function (key) {
+				return uiStrings[key][lang] || uiStrings[key]['en'];
+			};
 
 			var dlg = new Window('dialog', t('title'));
 			dlg.orientation = 'column';
@@ -198,14 +216,14 @@ function renderBG() {
 			panel.orientation = 'column';
 			panel.alignChildren = ['fill', 'top'];
 			panel.preferredSize = [400, 250];
-			
+
 			var scrollGroup = panel.add('group');
 			scrollGroup.orientation = 'column';
 			scrollGroup.alignChildren = ['left', 'top'];
 			scrollGroup.spacing = 5;
 			scrollGroup.alignment = ['fill', 'fill'];
 			// Make it scrollable if many items
-			scrollGroup.maximumSize.height = 10000; 
+			scrollGroup.maximumSize.height = 10000;
 
 			var checkboxes = [];
 			for (var i = 0; i < queueInfo.length; i++) {
@@ -218,19 +236,31 @@ function renderBG() {
 			var selGroup = dlg.add('group');
 			selGroup.orientation = 'row';
 			selGroup.spacing = 10;
-			var allBtn = selGroup.add('button', undefined, t('selectAll'), {style: 'toolbutton'});
-			var noneBtn = selGroup.add('button', undefined, t('selectNone'), {style: 'toolbutton'});
+			var allBtn = selGroup.add('button', undefined, t('selectAll'), {
+				style: 'toolbutton',
+			});
+			var noneBtn = selGroup.add('button', undefined, t('selectNone'), {
+				style: 'toolbutton',
+			});
 
-			allBtn.onClick = function() { for(var i=0; i<checkboxes.length; i++) checkboxes[i].value = true; };
-			noneBtn.onClick = function() { for(var i=0; i<checkboxes.length; i++) checkboxes[i].value = false; };
+			allBtn.onClick = function () {
+				for (var i = 0; i < checkboxes.length; i++) checkboxes[i].value = true;
+			};
+			noneBtn.onClick = function () {
+				for (var i = 0; i < checkboxes.length; i++) checkboxes[i].value = false;
+			};
 
 			var btnGroup = dlg.add('group');
 			btnGroup.orientation = 'row';
 			btnGroup.alignment = 'right';
 			btnGroup.spacing = 10;
 
-			var cancelBtn = btnGroup.add('button', undefined, t('cancel'), {name: 'cancel'});
-			var startBtn = btnGroup.add('button', undefined, t('start'), {name: 'ok'});
+			var cancelBtn = btnGroup.add('button', undefined, t('cancel'), {
+				name: 'cancel',
+			});
+			var startBtn = btnGroup.add('button', undefined, t('start'), {
+				name: 'ok',
+			});
 
 			if (dlg.show() !== 1) {
 				return;
@@ -246,7 +276,7 @@ function renderBG() {
 					var itemData = queueInfo[i];
 					selectedQueueInfo.push(itemData);
 					selectedCompNames.push(itemData.compName);
-					
+
 					// Re-calculate total frames for selected items
 					var item = rq.item(itemData.index);
 					var frameDuration = item.comp.frameDuration;
@@ -270,8 +300,14 @@ function renderBG() {
 			queueInfo = selectedQueueInfo;
 			compNames = selectedCompNames;
 			totalFrames = selectedTotalFrames;
-			
-			$.writeln('User selected ' + queueInfo.length + ' items with ' + totalFrames + ' total frames');
+
+			$.writeln(
+				'User selected ' +
+					queueInfo.length +
+					' items with ' +
+					totalFrames +
+					' total frames',
+			);
 		}
 
 		// Now set output paths for mp4 and mov files
@@ -281,18 +317,25 @@ function renderBG() {
 			for (var k = 0; k < queueInfo.length; k++) {
 				var itemData = queueInfo[k];
 				var item = rq.item(itemData.index);
-				
-				$.writeln('Processing item ' + (k+1) + '/' + queueInfo.length + ': ' + itemData.compName);
-				
+
+				$.writeln(
+					'Processing item ' +
+						(k + 1) +
+						'/' +
+						queueInfo.length +
+						': ' +
+						itemData.compName,
+				);
+
 				for (var m = 0; m < itemData.outputs.length; m++) {
 					try {
 						var outputData = itemData.outputs[m];
 						var om = item.outputModule(outputData.omIndex);
-						
+
 						// Get current file if set, otherwise we'll create a new path
 						var currentFile = om.file;
 						var ext = null;
-						
+
 						if (currentFile) {
 							ext = currentFile.name.split('.').pop().toLowerCase();
 						} else {
@@ -302,151 +345,187 @@ function renderBG() {
 							// So if module 1 is skipped, module 2 becomes the first -output target?
 							// Actually, if we skip adding to 'queueInfo' outputs, we lose track.
 							// But we added ALL modules to itemData.outputs earlier.
-							
+
 							// If we skip processing here, outputData.tempPath remains null.
 							// Then in command generation, we skip adding -output.
 							// So if Module 1 is skipped, Module 2 gets the first -output.
 							// This is RISKY if aerender expects -output for Module 1.
 							// But if Module 1 has no file, aerender probably ignores it.
-							
+
 							// Let's assume modules without files are irrelevant.
-							$.writeln('  Output module ' + outputData.omIndex + ' has no file set, skipping');
+							$.writeln(
+								'  Output module ' +
+									outputData.omIndex +
+									' has no file set, skipping',
+							);
 							continue;
 						}
-						
-						$.writeln('  Output module ' + outputData.omIndex + ' extension: ' + ext);
-						
+
+						$.writeln(
+							'  Output module ' + outputData.omIndex + ' extension: ' + ext,
+						);
+
 						var outputFolder = null;
 						var sanitizedCompName = sanitizeFilename(itemData.compName);
 						$.writeln('  Comp Name: ' + itemData.compName);
 						$.writeln('  Sanitized Name: ' + sanitizedCompName);
-						
+
 						if (ext === 'mp4') {
 							var baseFolder = getNthParentFolders(app.project.file, 5);
 							if (!baseFolder) {
-								alert('Cannot go up 5 folders from project file. Project might be too close to root.');
+								alert(
+									'Cannot go up 5 folders from project file. Project might be too close to root.',
+								);
 								return;
 							}
-							
+
 							var folderPath = baseFolder.fullName + '/to_send/撮影/check';
 							$.writeln('  MP4 output folder: ' + folderPath);
-							
+
 							if (!createFolderSafe(folderPath)) {
 								alert('Failed to create MP4 output folder:\n' + folderPath);
 								return;
 							}
-							
+
 							outputFolder = new Folder(folderPath);
-							
+
 							// FORCE SANITIZED COMP NAME FOR MP4 TOO
 							sanitizedCompName = sanitizeFilename(itemData.compName);
 							$.writeln('  MP4 forced sanitized name: ' + sanitizedCompName);
-							
 						} else if (ext === 'mov') {
 							// FIX: Ensure we are getting the correct parent folder
 							// User wants: <projectFolder>/compositing/<episode>/renders/<today Folder>
 							// Current structure: <projectFolder>/compositing/<episode>/cuts/<cutFolder>/<aep file>
 							// OR structure: <projectFolder>/compositing/<episode>/progress/<aep file>
-							
+
 							// Strategy: Search UP for "cuts" or "progress" folder.
 							// The parent of "cuts" or "progress" is the Episode folder.
-							
+
 							var baseFolder = null;
 							var current = app.project.file.parent;
 							var safetyLimit = 10;
 							while (current && safetyLimit > 0) {
-								if (current.name.toLowerCase() === 'cuts' || current.name.toLowerCase() === 'progress') {
+								if (
+									current.name.toLowerCase() === 'cuts' ||
+									current.name.toLowerCase() === 'progress'
+								) {
 									baseFolder = current.parent;
 									break;
 								}
 								current = current.parent;
 								safetyLimit--;
 							}
-							
+
 							// Fallback if not found (e.g. project structure is different)
 							if (!baseFolder) {
-								$.writeln('  Could not find "cuts" or "progress" folder in path. Defaulting to n=2 logic.');
+								$.writeln(
+									'  Could not find "cuts" or "progress" folder in path. Defaulting to n=2 logic.',
+								);
 								baseFolder = getNthParentFolders(app.project.file, 2);
 							}
 
 							if (!baseFolder) {
-								alert('Cannot find base folder (cuts/progress parent) or go up 2 folders from project file.');
+								alert(
+									'Cannot find base folder (cuts/progress parent) or go up 2 folders from project file.',
+								);
 								return;
 							}
-							
-							var folderPath = baseFolder.fullName + '/renders/' + getTodayYYYYMMDD();
+
+							var folderPath =
+								baseFolder.fullName + '/renders/' + getTodayYYYYMMDD();
 							$.writeln('  MOV output folder: ' + folderPath);
-							
+
 							if (!createFolderSafe(folderPath)) {
 								alert('Failed to create MOV output folder:\n' + folderPath);
 								return;
 							}
-							
+
 							outputFolder = new Folder(folderPath);
 						} else {
 							// For other formats, also put them in the today's folder if requested
 							// The user specifically asked for "renders folder in todays's folder"
-							
+
 							// FIX: Use same dynamic logic as MOV
 							var baseFolder = null;
 							var current = app.project.file.parent;
 							var safetyLimit = 10;
 							while (current && safetyLimit > 0) {
-								if (current.name.toLowerCase() === 'cuts' || current.name.toLowerCase() === 'progress') {
+								if (
+									current.name.toLowerCase() === 'cuts' ||
+									current.name.toLowerCase() === 'progress'
+								) {
 									baseFolder = current.parent;
 									break;
 								}
 								current = current.parent;
 								safetyLimit--;
 							}
-							
+
 							if (!baseFolder) {
 								baseFolder = getNthParentFolders(app.project.file, 2);
 							}
-							
+
 							if (baseFolder) {
-								var folderPath = baseFolder.fullName + '/renders/' + getTodayYYYYMMDD();
+								var folderPath =
+									baseFolder.fullName + '/renders/' + getTodayYYYYMMDD();
 								// Try to create folder, but even if it fails (due to unicode issues?),
 								// we might still want to proceed with temp path rendering.
 								// But for now let's assume createFolderSafe works.
 								if (createFolderSafe(folderPath)) {
 									outputFolder = new Folder(folderPath);
-									$.writeln('  ' + ext.toUpperCase() + ' output folder (defaulted): ' + folderPath);
+									$.writeln(
+										'  ' +
+											ext.toUpperCase() +
+											' output folder (defaulted): ' +
+											folderPath,
+									);
 								} else {
-									$.writeln('  WARNING: Failed to create output folder: ' + folderPath);
+									$.writeln(
+										'  WARNING: Failed to create output folder: ' + folderPath,
+									);
 								}
 							}
-							
+
 							if (!outputFolder) {
 								$.writeln('  Keeping original path for ' + ext + ' file');
 								// If we fail to determine a folder, we SKIP setting temp path.
 								// This is dangerous if the original path has Japanese chars.
 								// BUT we can't determine where to move the file TO.
-								
+
 								// Should we force a temp path anyway?
 								// If we force temp path, we can't move it later.
 								// So the user gets a file in temp folder.
-								
+
 								// Let's at least log this skipping clearly.
 								continue;
 							}
 						}
-						
+
 						// Set new output path
 						// FIX: Remove strict .exists check here as it might fail on unicode paths even if created
 						if (outputFolder) {
 							var finalFilePath;
 							var tempFilePath;
-							
+
 							if (is_win_os) {
 								// STRATEGY: Render to ASCII temp folder, then move to Japanese destination
 								// This is the only 100% reliable way to handle Japanese paths in aerender
-								finalFilePath = new File(outputFolder.fsName + '\\' + sanitizedCompName + '.' + ext);
-								
+								finalFilePath = new File(
+									outputFolder.fsName + '\\' + sanitizedCompName + '.' + ext,
+								);
+
 								// Use a more unique temp name with counter
-								var tempName = 'ae_render_' + timestamp + '_i' + itemData.index + '_m' + outputData.omIndex + '.' + ext;
+								var tempName =
+									'ae_render_' +
+									timestamp +
+									'_i' +
+									itemData.index +
+									'_m' +
+									outputData.omIndex +
+									'.' +
+									ext;
 								tempFilePath = new File(Folder.temp.fsName + '\\' + tempName);
-								
+
 								// Store move command for later
 								// Use powershell for moving to handle Unicode paths correctly
 								// -LiteralPath avoids issues with special characters in the source path
@@ -454,40 +533,47 @@ function renderBG() {
 								// ESCAPE SINGLE QUOTES for PowerShell (replace ' with '')
 								var safeTempPath = tempFilePath.fsName.replace(/'/g, "''");
 								var safeFinalPath = finalFilePath.fsName.replace(/'/g, "''");
-								
-								var moveCmd = 'powershell -Command "Move-Item -LiteralPath \'' + safeTempPath + '\' -Destination \'' + safeFinalPath + '\' -Force"';
+
+								var moveCmd =
+									'powershell -Command "Move-Item -LiteralPath \'' +
+									safeTempPath +
+									"' -Destination '" +
+									safeFinalPath +
+									'\' -Force"';
 								moveCommands.push(moveCmd);
-								
+
 								// AE 2025 Robustness: Set the path to the temp file
 								$.writeln('  [WIN] Temp Path: ' + tempFilePath.fsName);
 								$.writeln('  [WIN] Final Path: ' + finalFilePath.fsName);
-								
+
 								var targetFile = tempFilePath;
 								outputData.tempPath = tempFilePath.fsName; // Store for aerender flag
 								outputData.finalPath = finalFilePath.fsName; // Store for restoring main project
 							} else {
-								var targetFile = new File(outputFolder.fullName + '/' + sanitizedCompName + '.' + ext);
+								var targetFile = new File(
+									outputFolder.fullName + '/' + sanitizedCompName + '.' + ext,
+								);
 								$.writeln('  [MAC] Path: ' + targetFile.fsName);
 							}
-							
+
 							// AE 2025 Robustness
 							var originalStatus = item.status;
 							try {
 								app.beginSuppressDialogs();
-								
+
 								if (originalStatus === RQItemStatus.QUEUED) {
 									item.status = RQItemStatus.USER_STOPPED;
 								}
-								
+
 								// AE 2025 Fix: Extremely aggressive path setting
 								// 1. Set to null
 								om.file = null;
-								
+
 								// 2. REMOVED applyTemplate as it resets custom settings
 								// try {
 								// 	om.applyTemplate(om.name);
 								// } catch (e) {}
-								
+
 								// 3. Set the file using setSettings (Modern AE way)
 								// try {
 								// 	var settings = {
@@ -499,59 +585,87 @@ function renderBG() {
 								// } catch (e) {
 								// 	$.writeln('  setSettings failed, falling back to .file assignment: ' + e.toString());
 								// }
-								
+
 								// 4. Fallback/Verify with .file assignment
 								// DIRECT ASSIGNMENT ONLY - Keep it simple and robust
 								om.file = new File(targetFile.fsName);
-								
+
 								// 5. Final verification - if this fails, we cannot proceed safely
-								if (om.file === null || om.file.fsName.toLowerCase() !== targetFile.fsName.toLowerCase()) {
+								if (
+									om.file === null ||
+									om.file.fsName.toLowerCase() !==
+										targetFile.fsName.toLowerCase()
+								) {
 									// Double check if it's just case sensitivity issue
 									// But wait, if fsName is different, it might be due to 8.3 names or symlinks?
 									// Let's assume File object handles it.
-									
+
 									// If direct assignment failed, try setSettings as last resort
 									try {
 										var settings = {
-											"Output File Info": {
-												"Full Flat Path": targetFile.fsName
-											}
+											'Output File Info': {
+												'Full Flat Path': targetFile.fsName,
+											},
 										};
 										om.setSettings(settings);
-									} catch(e) {}
-									
+									} catch (e) {}
+
 									if (om.file === null) {
-										var err = 'CRITICAL: Failed to set output path for ' + itemData.compName + '.\n' +
-												  'Expected: ' + targetFile.fsName + '\n' +
-												  'Got: NULL';
+										var err =
+											'CRITICAL: Failed to set output path for ' +
+											itemData.compName +
+											'.\n' +
+											'Expected: ' +
+											targetFile.fsName +
+											'\n' +
+											'Got: NULL';
 										throw new Error(err);
 									}
 									// If path is different but not null, we log warning but proceed?
 									// No, if path is wrong, aerender fails.
-									if (om.file.fsName.toLowerCase() !== targetFile.fsName.toLowerCase()) {
-										$.writeln('WARNING: Path mismatch after setting. Expected: ' + targetFile.fsName + ', Got: ' + om.file.fsName);
+									if (
+										om.file.fsName.toLowerCase() !==
+										targetFile.fsName.toLowerCase()
+									) {
+										$.writeln(
+											'WARNING: Path mismatch after setting. Expected: ' +
+												targetFile.fsName +
+												', Got: ' +
+												om.file.fsName,
+										);
 										// This might happen if AE normalizes path differently.
 										// But usually on Windows they should match.
 									}
 								}
-								
+
 								if (originalStatus === RQItemStatus.QUEUED) {
 									item.status = RQItemStatus.QUEUED;
 								}
-								
+
 								app.endSuppressDialogs(false);
 								$.writeln('  Path set successfully to: ' + om.file.fsName);
 							} catch (setErr) {
 								app.endSuppressDialogs(false);
-								$.writeln('  Warning: Path assignment error: ' + setErr.toString());
+								$.writeln(
+									'  Warning: Path assignment error: ' + setErr.toString(),
+								);
 								if (originalStatus === RQItemStatus.QUEUED) {
-									try { item.status = RQItemStatus.QUEUED; } catch(e) {}
+									try {
+										item.status = RQItemStatus.QUEUED;
+									} catch (e) {}
 								}
 							}
 						}
 					} catch (omSetErr) {
-						$.writeln('ERROR setting output module path: ' + omSetErr.toString());
-						alert('Error setting output path:\n' + omSetErr.toString() + '\n\nComp: ' + itemData.compName);
+						$.writeln(
+							'ERROR setting output module path: ' + omSetErr.toString(),
+						);
+						alert(
+							'Error setting output path:\n' +
+								omSetErr.toString() +
+								'\n\nComp: ' +
+								itemData.compName,
+						);
 						return;
 					}
 				}
@@ -560,16 +674,23 @@ function renderBG() {
 			alert('Error in path setting:\n' + pathErr.toString());
 			return;
 		}
-		
+
 		$.writeln('All output paths set successfully');
 		$.sleep(500); // Give AE a moment to settle
 
 		// Save
 		var af = app.project.file;
-		
+
 		// Move temp file back to Folder.temp to avoid Japanese characters in project path
-		var tmpAep = new File(Folder.temp.fullName + '/' + 'aerender_temp_' + timestamp + '.aep');
-		var logFile = new File(Folder.temp.fullName + '/' + 'aerender_log_' + timestamp + '.txt');
+		var tmpAep = new File(
+			Folder.temp.fullName + '/' + 'aerender_temp_' + timestamp + '.aep',
+		);
+		var logFile = new File(
+			Folder.temp.fullName + '/' + 'aerender_log_' + timestamp + '.txt',
+		);
+		var pidFile = new File(
+			Folder.temp.fullName + '/' + 'aerender_pid_' + timestamp + '.txt',
+		);
 
 		try {
 			// PRE-SAVE VERIFICATION
@@ -583,15 +704,29 @@ function renderBG() {
 						if (outputData.tempPath) {
 							var om = item.outputModule(outputData.omIndex);
 							// Case-insensitive check
-							if (om.file && om.file.fsName.toLowerCase() !== outputData.tempPath.toLowerCase()) {
-								$.writeln('CRITICAL WARNING: Path reverted/changed before save! Item ' + itemData.index + ' Module ' + outputData.omIndex);
+							if (
+								om.file &&
+								om.file.fsName.toLowerCase() !==
+									outputData.tempPath.toLowerCase()
+							) {
+								$.writeln(
+									'CRITICAL WARNING: Path reverted/changed before save! Item ' +
+										itemData.index +
+										' Module ' +
+										outputData.omIndex,
+								);
 								$.writeln('  Expected: ' + outputData.tempPath);
 								$.writeln('  Got: ' + om.file.fsName);
-								
+
 								// FORCE RESET
 								om.file = new File(outputData.tempPath);
-								if (om.file.fsName.toLowerCase() !== outputData.tempPath.toLowerCase()) {
-									throw new Error('Unrecoverable path error for Item ' + itemData.index);
+								if (
+									om.file.fsName.toLowerCase() !==
+									outputData.tempPath.toLowerCase()
+								) {
+									throw new Error(
+										'Unrecoverable path error for Item ' + itemData.index,
+									);
 								}
 								$.writeln('  FIXED path before save.');
 							}
@@ -618,8 +753,13 @@ function renderBG() {
 								// We can use simple assignment here as we are in the main UI thread context
 								// and this is primarily for user visibility
 								om.file = new File(outputData.finalPath);
-							} catch(e) {
-								$.writeln('Error restoring path for item ' + itemData.index + ': ' + e.toString());
+							} catch (e) {
+								$.writeln(
+									'Error restoring path for item ' +
+										itemData.index +
+										': ' +
+										e.toString(),
+								);
 							}
 						}
 					}
@@ -640,44 +780,53 @@ function renderBG() {
 		var shellCmdFile = null;
 		var cmd = '';
 		var aer = null;
-		
+
 		if (is_win_os) {
 			aer = new File(Folder.appPackage.fullName + '/aerender.exe');
 			if (!aer.exists) {
-				var altAer = new File('C:\\Program Files\\Adobe\\Adobe After Effects 2025\\Support Files\\aerender.exe');
+				var altAer = new File(
+					'C:\\Program Files\\Adobe\\Adobe After Effects 2025\\Support Files\\aerender.exe',
+				);
 				if (altAer.exists) aer = altAer;
 			}
-			
+
 			if (!aer.exists) {
 				alert('aerender.exe not found at:\n' + aer.fsName);
 				return;
 			}
 
-			shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.bat');
+			shellCmdFile = new File(
+				Folder.temp.fullName + '/aerender_' + timestamp + '.bat',
+			);
 			var aerShort = getShortPath(aer);
-			
+
 			cmd = '@echo off\r\n';
 			cmd += 'chcp 65001 >nul\r\n';
 			cmd += 'echo Starting render...\r\n';
-			
+
 			// Write start marker to log immediately
 			cmd += 'echo RENDER_STARTED > ' + wq(logFile.fsName) + '\r\n';
-			
+
 			// Generate aerender command for each item using the -output flag
 			for (var rIdx = 0; rIdx < queueInfo.length; rIdx++) {
 				var rItem = queueInfo[rIdx];
 				var itemCmd = '';
 				var hasTempPath = false;
-				
-				cmd += 'echo Rendering Item ' + (rIdx+1) + ' (Index ' + rItem.index + ')...\r\n';
-				
+
+				cmd +=
+					'echo Rendering Item ' +
+					(rIdx + 1) +
+					' (Index ' +
+					rItem.index +
+					')...\r\n';
+
 				itemCmd += wq(aerShort) + ' -project ' + wq(tmpAep.fsName);
 				itemCmd += ' -rqindex ' + rItem.index;
-				
+
 				// CRITICAL FIX: Ensure -output flags map to modules correctly.
 				// By removing -output flags, we force aerender to use the paths saved in the project file.
 				// This assumes we successfully saved ASCII temp paths to the project file.
-				
+
 				// Also check if any temp path has non-ASCII characters
 				for (var oIdx = 0; oIdx < rItem.outputs.length; oIdx++) {
 					var oData = rItem.outputs[oIdx];
@@ -686,55 +835,84 @@ function renderBG() {
 							// Panic mode: This path has non-ASCII chars!
 							// We must alert user? No, we are in a loop.
 							// But this explains why it fails.
-							cmd += 'echo WARNING: Non-ASCII characters in temp path for Module ' + oData.omIndex + '\r\n';
+							cmd +=
+								'echo WARNING: Non-ASCII characters in temp path for Module ' +
+								oData.omIndex +
+								'\r\n';
 						}
-						
-						hasTempPath = true; 
+
+						hasTempPath = true;
 						// Log what we expect
-						cmd += 'echo   Module ' + oData.omIndex + ' -> ' + wq(oData.tempPath) + '\r\n';
+						cmd +=
+							'echo   Module ' +
+							oData.omIndex +
+							' -> ' +
+							wq(oData.tempPath) +
+							'\r\n';
 					}
 				}
-				
+
 				if (hasTempPath) {
 					itemCmd += ' -sound ON >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
 					cmd += itemCmd;
-					
+
 					// Add error check and delay to ensure stability between renders
-					cmd += 'if %ERRORLEVEL% NEQ 0 echo Error rendering item ' + (rIdx+1) + ' >> ' + wq(logFile.fsName) + '\r\n';
+					cmd +=
+						'if %ERRORLEVEL% NEQ 0 echo Error rendering item ' +
+						(rIdx + 1) +
+						' >> ' +
+						wq(logFile.fsName) +
+						'\r\n';
 					cmd += 'timeout /t 2 /nobreak >nul\r\n';
 				}
 			}
-			
+
 			if (moveCommands.length > 0) {
 				cmd += 'echo Moving files to destination...\r\n';
 				for (var moveIdx = 0; moveIdx < moveCommands.length; moveIdx++) {
 					cmd += moveCommands[moveIdx] + '\r\n';
 				}
 			}
-			
+
 			cmd += 'echo Cleaning up...\r\n';
-			cmd += 'if exist ' + wq(tmpAep.fsName) + ' del ' + wq(tmpAep.fsName) + ' 2>nul\r\n';
-			
+			cmd +=
+				'if exist ' +
+				wq(tmpAep.fsName) +
+				' del ' +
+				wq(tmpAep.fsName) +
+				' 2>nul\r\n';
+
 			// Small delay to ensure all logs are flushed before the final marker
 			cmd += 'timeout /t 2 /nobreak >nul\r\n';
-			
+
 			cmd += 'echo Render process finished.\r\n';
 			// Log finish at the very end to signal success to UI
-			cmd += 'echo AERENDER FINISHED - Render process finished. >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
+			cmd +=
+				'echo AERENDER FINISHED - Render process finished. >> ' +
+				wq(logFile.fsName) +
+				' 2>&1\r\n';
 			cmd += 'exit\r\n';
 		} else {
 			aer = new File(Folder.appPackage.parent.fullName + '/aerender');
-			shellCmdFile = new File(Folder.temp.fullName + '/aerender_' + timestamp + '.command');
-			
+			shellCmdFile = new File(
+				Folder.temp.fullName + '/aerender_' + timestamp + '.command',
+			);
+
 			cmd = '#!/bin/bash\r\n';
 			cmd += 'echo "Starting render..."\r\n';
-			cmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName) + ' -sound ON 2>&1 | tee ' + wq(logFile.fsName) + '\r\n';
+			cmd +=
+				wq(aer.fsName) +
+				' -project ' +
+				wq(tmpAep.fsName) +
+				' -sound ON 2>&1 | tee ' +
+				wq(logFile.fsName) +
+				'\r\n';
 			cmd += 'rm -f ' + wq(tmpAep.fsName) + '\r\n';
 			cmd += 'rm -f ' + wq(shellCmdFile.fsName) + '\r\n';
 		}
-		
+
 		if (shellCmdFile.exists == true) shellCmdFile.remove();
-		
+
 		if (shellCmdFile.open('w')) {
 			if (is_win_os) {
 				shellCmdFile.encoding = 'UTF-8';
@@ -747,29 +925,41 @@ function renderBG() {
 			shellCmdFile.write(cmd);
 			shellCmdFile.close();
 		}
-		
+
 		if (is_win_os == false) {
 			system.callSystem('chmod 755 ' + wq(shellCmdFile.fullName));
 		}
-		
+
 		if (shellCmdFile.exists == true) {
 			$.sleep(500);
-			
+
 			if (is_win_os) {
 				// To make it TRULY non-blocking and HIDDEN on Windows, we use a VBScript wrapper.
 				// This launches the batch file without any CMD window popping up.
-				var vbsFile = new File(Folder.temp.fullName + '/aerender_launcher_' + timestamp + '.vbs');
+				var vbsFile = new File(
+					Folder.temp.fullName + '/aerender_launcher_' + timestamp + '.vbs',
+				);
 				if (vbsFile.open('w')) {
 					// WshShell.Run(command, windowStyle, waitOnReturn)
 					// windowStyle: 0 = Hidden window
 					vbsFile.write('Set WshShell = CreateObject("WScript.Shell")\n');
-					vbsFile.write('WshShell.Run "cmd.exe /c " & Chr(34) & "' + shellCmdFile.fsName + '" & Chr(34), 0, false\n');
+					vbsFile.write(
+						'WshShell.Run "cmd.exe /c " & Chr(34) & "' +
+							shellCmdFile.fsName +
+							'" & Chr(34), 0, false\n',
+					);
 					vbsFile.close();
-					
+
 					vbsFile.execute();
-					
+
 					// Cleanup VBS after a short delay
-					app.scheduleTask('try { var f = new File("' + vbsFile.fsName.replace(/\\/g, '/') + '"); if(f.exists) f.remove(); } catch(e) {}', 5000, false);
+					app.scheduleTask(
+						'try { var f = new File("' +
+							vbsFile.fsName.replace(/\\/g, '/') +
+							'"); if(f.exists) f.remove(); } catch(e) {}',
+						5000,
+						false,
+					);
 				} else {
 					// Fallback if VBS creation fails
 					shellCmdFile.execute();
@@ -782,23 +972,34 @@ function renderBG() {
 			try {
 				var scriptFile = new File($.fileName);
 				if (scriptFile && scriptFile.exists) {
-					var uiFile = new File(scriptFile.parent.parent.fsName + '/ui/renderBG_UI.jsx');
-					
+					var uiFile = new File(
+						scriptFile.parent.parent.fsName + '/ui/renderBG_UI.jsx',
+					);
+
 					if (uiFile.exists) {
 						$.evalFile(uiFile);
 						if (typeof showRenderBG_UI === 'function') {
-							showRenderBG_UI(compNames, tmpAep.fsName, totalFrames, logFile.fsName);
+							showRenderBG_UI(
+								compNames,
+								tmpAep.fsName,
+								totalFrames,
+								logFile.fsName,
+								pidFile.fsName,
+							);
 						}
 					}
 				}
 			} catch (uiErr) {}
 		}
-		
 	} catch (mainErr) {
-		var errorMsg = 'CRITICAL ERROR:\n' + mainErr.toString() + '\n\nLine: ' + (mainErr.line || 'unknown');
+		var errorMsg =
+			'CRITICAL ERROR:\n' +
+			mainErr.toString() +
+			'\n\nLine: ' +
+			(mainErr.line || 'unknown');
 		$.writeln(errorMsg);
 		alert(errorMsg);
-		
+
 		// If we have a log file and it was a shell execution issue, try to open it
 		if (typeof logFile !== 'undefined' && logFile && logFile.exists) {
 			logFile.execute();
