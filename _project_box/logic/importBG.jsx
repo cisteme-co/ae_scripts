@@ -75,37 +75,27 @@ function importBG() {
 		return;
 	}
 
-	// Find episode folder (e.g. orb01 for compositing, #01 for lighting)
-	var targetName = (project + episode).toLowerCase();
-	var lightingTargetName = episode.toLowerCase();
-
+	// Find episode folder
+	// For compositing: orb01 (project+episode)
+	// For lighting: 01 (episode only)
 	var episodeFolders = bgFolder.getFiles(function (f) {
 		return f instanceof Folder;
 	});
 
+	var targetName = isLighting
+		? episode.toLowerCase()
+		: (project + episode).toLowerCase();
 	var episodeFolder = null;
 	for (var i = 0; i < episodeFolders.length; i++) {
 		var folderName = episodeFolders[i].name.toLowerCase();
-		if (isLighting) {
-			if (
-				folderName === lightingTargetName ||
-				folderName === episode.toLowerCase()
-			) {
-				episodeFolder = episodeFolders[i];
-				break;
-			}
-		} else {
-			if (folderName === targetName) {
-				episodeFolder = episodeFolders[i];
-				break;
-			}
+		if (folderName === targetName) {
+			episodeFolder = episodeFolders[i];
+			break;
 		}
 	}
 
 	if (!episodeFolder) {
-		Alerts.alertEpisodeFolderNotFound(
-			isLighting ? lightingTargetName : targetName,
-		);
+		Alerts.alertEpisodeFolderNotFound(targetName);
 		return;
 	}
 

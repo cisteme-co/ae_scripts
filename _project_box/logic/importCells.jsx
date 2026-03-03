@@ -41,7 +41,8 @@ function importCells() {
 	// ──────────────
 	// Determine mode and locate paint/episode folder
 	// ──────────────
-	var isLighting = app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
+	var isLighting =
+		app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
 	var episodeFolder = null;
 
 	// Both lighting and compositing paint folders are in <projectFolder>/assets/paint/
@@ -51,8 +52,12 @@ function importCells() {
 		return;
 	}
 
-	// Find episode folder inside assets/paint (e.g. orb01)
-	var targetName = (project + episode).toLowerCase();
+	// Find episode folder inside assets/paint
+	// For compositing: orb01 (project+episode)
+	// For lighting: 01 (episode only)
+	var targetName = isLighting
+		? episode.toLowerCase()
+		: (project + episode).toLowerCase();
 	var episodeFolders = paintFolder.getFiles(function (f) {
 		return f instanceof Folder;
 	});
@@ -106,7 +111,7 @@ function isLatestDataAlreadyImported(baseName, episodeFolder, cut, isLighting) {
 
 		// 2. Distinct part match (handles "ws_06_001_k" for cut "001")
 		var escapedKey = searchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-		var regex = new RegExp("(^|[^0-9])" + escapedKey + "([^0-9]|$)", "i");
+		var regex = new RegExp('(^|[^0-9])' + escapedKey + '([^0-9]|$)', 'i');
 		if (regex.test(folderName)) return true;
 
 		return false;
@@ -161,7 +166,7 @@ function importCellAssets(folder, baseName, cut, isLighting) {
 
 		// 2. Distinct part match (handles "ws_06_001_k" for cut "001")
 		var escapedKey = searchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-		var regex = new RegExp("(^|[^0-9])" + escapedKey + "([^0-9]|$)", "i");
+		var regex = new RegExp('(^|[^0-9])' + escapedKey + '([^0-9]|$)', 'i');
 		if (regex.test(folderName)) return true;
 
 		return false;
@@ -307,7 +312,7 @@ function setupBins(isLighting) {
 			binLo: binLo,
 			binPaint: binPaint,
 			binData: binData,
-			isLighting: false
+			isLighting: false,
 		};
 	}
 }
@@ -338,16 +343,19 @@ function applyCellFXAndInsert(isLighting) {
 			item.height,
 			1,
 			item.duration,
-			1 / item.frameDuration
+			1 / item.frameDuration,
 		);
 		cellComp.layers.add(item);
-		
+
 		if (isLighting) {
 			var binSozai = findOrCreateBin('01)_sozai');
 			var binCel = findOrCreateBin('03_Cel', binSozai);
 			cellComp.parentFolder = findOrCreateBin('01_Cel', binCel);
 		} else {
-			cellComp.parentFolder = findOrCreateBin('cell', findOrCreateBin('paint', findOrCreateBin('2D')));
+			cellComp.parentFolder = findOrCreateBin(
+				'cell',
+				findOrCreateBin('paint', findOrCreateBin('2D')),
+			);
 		}
 
 		// Create cellFX comp
@@ -357,16 +365,19 @@ function applyCellFXAndInsert(isLighting) {
 			item.height,
 			1,
 			item.duration,
-			1 / item.frameDuration
+			1 / item.frameDuration,
 		);
 		var cellFXLayer = cellFXComp.layers.add(cellComp);
-		
+
 		if (isLighting) {
 			var binSozai = findOrCreateBin('01)_sozai');
 			var binCel = findOrCreateBin('03_Cel', binSozai);
 			cellFXComp.parentFolder = findOrCreateBin('02_Cel_FX', binCel);
 		} else {
-			cellFXComp.parentFolder = findOrCreateBin('cellFX', findOrCreateBin('paint', findOrCreateBin('2D')));
+			cellFXComp.parentFolder = findOrCreateBin(
+				'cellFX',
+				findOrCreateBin('paint', findOrCreateBin('2D')),
+			);
 		}
 
 		// Add Color Key (white)
@@ -466,7 +477,7 @@ function removeSequenceNumber(name) {
 	// or digits at end (3-4 digits)
 	return name.replace(
 		/(\_?\[\d{3,4}([~-]\d{3,4})?\](\.\w+)?|\_\d{3,4}(\.\w+)?$|\d{3,4}$)/,
-		''
+		'',
 	);
 }
 

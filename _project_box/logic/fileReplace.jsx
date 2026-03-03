@@ -38,7 +38,8 @@ function fileReplace() {
 	}
 
 	// ────────────── 2. Determine mode and locate paint/episode folder ──────────────
-	var isLighting = app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
+	var isLighting =
+		app.project.file.fsName.toLowerCase().indexOf('lighting') !== -1;
 	var episodeFolder = null;
 
 	// Both lighting and compositing paint folders are in <projectFolder>/assets/paint/
@@ -48,8 +49,12 @@ function fileReplace() {
 		return;
 	}
 
-	// Find episode folder inside assets/paint (e.g. orb01)
-	var targetName = (project + episode).toLowerCase();
+	// Find episode folder inside assets/paint
+	// For compositing: orb01 (project+episode)
+	// For lighting: 01 (episode only)
+	var targetName = isLighting
+		? episode.toLowerCase()
+		: (project + episode).toLowerCase();
 	var episodeFolders = paintFolder.getFiles(function (f) {
 		return f instanceof Folder;
 	});
@@ -100,7 +105,7 @@ function isLatestDataAlreadyImported(baseName, episodeFolder, cut, isLighting) {
 
 		// 2. Distinct part match (handles "ws_06_001_k" for cut "001")
 		var escapedKey = searchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-		var regex = new RegExp("(^|[^0-9])" + escapedKey + "([^0-9]|$)", "i");
+		var regex = new RegExp('(^|[^0-9])' + escapedKey + '([^0-9]|$)', 'i');
 		if (regex.test(folderName)) return true;
 
 		return false;
@@ -182,7 +187,7 @@ function importCellAssets(folder, baseName, cut, isLighting) {
 
 		// 2. Distinct part match (handles "ws_06_001_k" for cut "001")
 		var escapedKey = searchKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-		var regex = new RegExp("(^|[^0-9])" + escapedKey + "([^0-9]|$)", "i");
+		var regex = new RegExp('(^|[^0-9])' + escapedKey + '([^0-9]|$)', 'i');
 		if (regex.test(folderName)) return true;
 
 		return false;
@@ -263,7 +268,7 @@ function importImageSequence(folder, targetBin) {
 		if (footage) footage.parentFolder = targetBin;
 	} catch (err) {
 		alert(
-			'⚠️ Failed to import sequence: ' + folder.name + ' - ' + err.toString()
+			'⚠️ Failed to import sequence: ' + folder.name + ' - ' + err.toString(),
 		);
 	}
 }
@@ -293,7 +298,13 @@ function setupBins(isLighting) {
 		var binLo = findOrCreateBin('_lo', bin2D);
 		var binPaint = findOrCreateBin('paint', bin2D);
 		var binData = findOrCreateBin('_data', binPaint);
-		return { bin2D: bin2D, binLo: binLo, binPaint: binPaint, binData: binData, isLighting: false };
+		return {
+			bin2D: bin2D,
+			binLo: binLo,
+			binPaint: binPaint,
+			binData: binData,
+			isLighting: false,
+		};
 	}
 }
 
@@ -398,7 +409,7 @@ function replaceInComp(comp, binData, binLo) {
 		// Recursively handle nested comps
 		if (lyr.source instanceof CompItem) {
 			replaceInComp(lyr.source, binData, binLo);
-			
+
 			// If this is a cellFX layer in a _work comp, ensure its label is orange
 			if (/_cellFX$/i.test(lyr.source.name) && /^_work/i.test(comp.name)) {
 				lyr.label = 11; // Orange
@@ -417,7 +428,7 @@ function removeSequenceNumber(name) {
 	// or digits at end (3-4 digits)
 	return name.replace(
 		/(\_?\[\d{3,4}([~-]\d{3,4})?\](\.\w+)?|\_\d{3,4}(\.\w+)?$|\d{3,4}$)/,
-		''
+		'',
 	);
 }
 
