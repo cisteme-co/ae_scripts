@@ -88,6 +88,10 @@ function createLightingCut(
 		return;
 	}
 
+	// Reset per-run warning flags so errors are always shown on each fresh invocation
+	__createLightingCutTemplateWarnings.rs = false;
+	__createLightingCutTemplateWarnings.om = false;
+
 	// Use a try-catch for the whole process to avoid silent hangs
 	try {
 		app.beginUndoGroup('Create Lighting Cut');
@@ -285,11 +289,13 @@ function createLightingCut(
 
 				// Render Settings
 				var rsTemplates = [
+					'Best Settings 23.976',
 					'Best Settings 23.976 Proxy',
 					'Best Setting 23.976 Proxy',
 					'best settings 23.976 proxy',
 					'bestsettings23.976proxy',
 					'BestSetting 23.976 Proxy',
+					'BestSettings 23.976 Proxy',
 				];
 				if (!applyRenderSettings(rqItem, rsTemplates)) {
 					try {
@@ -379,9 +385,66 @@ function __findTemplateMatch(availableTemplates, desiredTemplates) {
 	return null;
 }
 
+function getAvailableRenderSettingsTemplates() {
+	var templates = [];
+	var appdata = $.getenv('APPDATA');
+	var home = $.getenv('HOME');
+	var basePaths = [];
+	if (appdata) basePaths.push(appdata + '/Adobe/After Effects');
+	if (home) basePaths.push(home + '/Library/Preferences/Adobe/After Effects');
+
+	for (var b = 0; b < basePaths.length; b++) {
+		var baseDir = new Folder(basePaths[b]);
+		if (!baseDir.exists) continue;
+		var subFolders = baseDir.getFiles('*');
+		for (var v = 0; v < subFolders.length; v++) {
+			if (!(subFolders[v] instanceof Folder)) continue;
+			var arsFile = new File(
+				subFolders[v].fsName + '/Render Settings Templates.ars',
+			);
+			if (!arsFile.exists) continue;
+			try {
+				arsFile.open('r');
+				var content = arsFile.read();
+				arsFile.close();
+				var re = /\/nme \(([^)]+)\)/g;
+				var m = re.exec(content);
+				while (m !== null) {
+					templates.push(m[1]);
+					m = re.exec(content);
+				}
+				if (templates.length > 0) return templates;
+			} catch (e) {}
+		}
+	}
+	return null;
+}
+
 function applyRenderSettings(rqItem, templates) {
-	// Note: rqItem.templates is not a valid AE API — render settings template names
-	// cannot be listed via ExtendScript, so we try each name directly.
+	var available = getAvailableRenderSettingsTemplates();
+
+	var match = __findTemplateMatch(available, templates);
+	if (match) {
+		try {
+			rqItem.applyTemplate(match);
+			return true;
+		} catch (e) {
+			if (!__createLightingCutTemplateWarnings.rs) {
+				__createLightingCutTemplateWarnings.rs = true;
+				var msg =
+					'Render Settings: found template "' +
+					match +
+					'" but could not apply it.';
+				msg += '\nError: ' + e.toString();
+				if (available && available.length) {
+					msg += '\n\nAll available templates:\n' + available.join('\n');
+				}
+				alert(msg);
+			}
+			return false;
+		}
+	}
+
 	var errors = [];
 	for (var i = 0; i < templates.length; i++) {
 		try {
@@ -397,6 +460,12 @@ function applyRenderSettings(rqItem, templates) {
 		var msg =
 			'Could not apply any Render Settings template.\n\nTried (with errors):\n' +
 			errors.join('\n');
+		if (available && available.length) {
+			msg +=
+				'\n\nAvailable render settings templates:\n' + available.join('\n');
+		} else {
+			msg += '\n\n(Could not read available templates from preferences file.)';
+		}
 		alert(msg);
 	}
 
