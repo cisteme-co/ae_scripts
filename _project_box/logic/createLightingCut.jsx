@@ -54,7 +54,29 @@ function createLightingCut(
 		alert('Failed to create folder: ' + finalFolderPath);
 		return;
 	}
+
 	var finalFolder = new Folder(finalFolderPath);
+
+	// ──────────────
+	// Save project with new name
+	// ──────────────
+	var episodeNum = episode.text;
+	var cutFolderName = cuts.join('-');
+	var outputFileName =
+		codeName + '_' + episodeNum + '_' + cutFolderName + '-3D_t01.aep';
+	var outputFile = new File(finalFolder.fsName + '/' + outputFileName);
+
+	if (outputFile.fsName.length > 260) {
+		alert('Warning: Path might be too long for After Effects.');
+	}
+
+	if (outputFile.exists) {
+		alert(
+			'Output file already exists and will be overwritten:\n' +
+				outputFile.fsName,
+		);
+		return;
+	}
 
 	// ──────────────
 	// Open template project
@@ -110,19 +132,6 @@ function createLightingCut(
 		// Set Time Display to Frames
 		// ──────────────
 		app.project.timeDisplayType = TimeDisplayType.FRAMES;
-
-		// ──────────────
-		// Save project with new name
-		// ──────────────
-		var episodeNum = episode.text;
-		var cutFolderName = cuts.join('-');
-		var outputFileName =
-			codeName + '_' + episodeNum + '_' + cutFolderName + '-3D_t01.aep';
-		var outputFile = new File(finalFolder.fsName + '/' + outputFileName);
-
-		if (outputFile.fsName.length > 260) {
-			alert('Warning: Path might be too long for After Effects.');
-		}
 
 		app.project.save(outputFile);
 
