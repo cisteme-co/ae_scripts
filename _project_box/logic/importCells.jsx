@@ -55,12 +55,20 @@ function importCells() {
 	// Find episode folder inside assets/paint
 	// For compositing: orb01 (project+episode)
 	// For lighting: 01 (episode only)
-	var targetName = isLighting
-		? episode.toLowerCase()
-		: (project + episode).toLowerCase();
 	var episodeFolders = paintFolder.getFiles(function (f) {
 		return f instanceof Folder;
 	});
+
+	var targetName = null;
+	for (var i = 0; i < episodeFolders.length; i++) {
+		if (episodeFolders[i].name.toLowerCase() === episode.toLowerCase()) {
+			targetName = episode.toLowerCase();
+			break;
+		}
+	}
+	if (!targetName) {
+		targetName = (project + episode).toLowerCase();
+	}
 
 	for (var i = 0; i < episodeFolders.length; i++) {
 		if (episodeFolders[i].name.toLowerCase() === targetName) {
@@ -204,7 +212,7 @@ function importCellAssets(folder, baseName, cut, isLighting) {
 
 		if (name === '_lo') {
 			importImagesIndividually(sub, bins.binLo);
-		} else if (/^[a-z](?:_[a-z0-9]+)?$/i.test(name)) {
+		} else if (/^[a-z][a-z0-9_]*$/i.test(name) && !/_(pool|go)$/i.test(name)) {
 			importImageSequence(sub, bins.binData);
 		}
 	}

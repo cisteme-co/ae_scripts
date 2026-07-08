@@ -77,22 +77,39 @@
 		panelGroup.alignment = ['fill', 'fill'];
 
 		var execAERemapBtn = panelGroup.add('button', undefined, L.execAERemapBtn);
+		execAERemapBtn.alignment = ['fill', 'top'];
+
 		var cellInfoBtn = panelGroup.add('button', undefined, L.cellInfoBtn);
+		cellInfoBtn.alignment = ['fill', 'top'];
+
 		var saveArdjBtn = panelGroup.add('button', undefined, L.saveArdjBtn);
+		saveArdjBtn.alignment = ['fill', 'top'];
+
 		var saveCompBtn = panelGroup.add('button', undefined, L.saveCompBtn);
+		saveCompBtn.alignment = ['fill', 'top'];
+
 		var fromCompBtn = panelGroup.add('button', undefined, L.fromCompBtn);
+		fromCompBtn.alignment = ['fill', 'top'];
+
 		var clearBtn = panelGroup.add('button', undefined, L.clearBtn);
+		clearBtn.alignment = ['fill', 'top'];
+
 		var centerBtn = panelGroup.add('button', undefined, L.centerBtn);
+		centerBtn.alignment = ['fill', 'top'];
+
 		var getCellBtn = panelGroup.add('button', undefined, L.getCellBtn);
+		getCellBtn.alignment = ['fill', 'top'];
 
 		var emptyType = panelGroup.add(
 			'dropdownlist',
 			undefined,
-			L.emptyTypeOptions
+			L.emptyTypeOptions,
 		);
+		emptyType.alignment = ['fill', 'top'];
 		emptyType.selection = 0;
 
 		var inOutPoint = panelGroup.add('checkbox', undefined, L.inOutPoint);
+		inOutPoint.alignment = ['fill', 'top'];
 		inOutPoint.value = false;
 
 		// ───────────────────────────────
@@ -120,6 +137,8 @@
 
 		var applyBtn = applyBtnGroup.add('button', undefined, L.applyBtn);
 		applyBtn.alignment = ['fill', 'fill'];
+		applyBtn.minimumSize = [0, 30];
+		applyBtn.maximumSize = [10000, 30];
 
 		// Panel for additional UI elements (Cells)
 		var cellPanel = scndPanelGroup.add('panel', undefined, L.cellPanel);
@@ -166,16 +185,59 @@
 			applyBtn.preferredSize = [applyBtn.preferredSize[0], 30];
 		}
 
-		// Show window or layout panel accordingly
+		// ───────────────────────────────
+		// Resize handling — applies to BOTH a floating Window
+		// and a dockable Panel.
+		//
+		// AE-specific gotcha: for a DOCKED panel, calling
+		// layout.resize()/layout(true) synchronously inside
+		// onResizing/onResize doesn't reliably apply — AE's dock
+		// host fires these events before it has finished updating
+		// the panel's real bounds, so the call runs against stale
+		// dimensions. Symptoms: children appear to snap/center
+		// incorrectly, and the panel resists resizing past a
+		// certain point. The standard fix is to defer the actual
+		// resize call via app.scheduleTask instead of running it
+		// inline, and debounce so drag events don't pile up tasks.
+		// ───────────────────────────────
+
+		win.minimumSize = [0, 0];
+
+		var __resizeTaskId = null;
+
+		// Must live on $.global — app.scheduleTask evaluates its
+		// string argument in the global ExtendScript engine scope,
+		// not inside this closure.
+		$.global.__timesheetDoResize = function () {
+			try {
+				enforceSize();
+				win.layout.resize();
+			} catch (e) {}
+		};
+
+		function scheduleResize() {
+			if (__resizeTaskId !== null) {
+				try {
+					app.cancelTask(__resizeTaskId);
+				} catch (e) {}
+			}
+			__resizeTaskId = app.scheduleTask(
+				'$.global.__timesheetDoResize()',
+				50,
+				false,
+			);
+		}
+
+		win.onResizing = scheduleResize;
+		win.onResize = scheduleResize;
+
+		// Initial layout pass
+		win.layout.layout(true);
+		win.layout.resize();
+
 		if (win instanceof Window) {
-			win.onResizing = win.onResize = function () {
-				this.layout.resize();
-			};
 			win.center();
 			win.show();
-		} else {
-			win.layout.layout(true);
-			win.layout.resize();
 		}
 	}
 })(this);

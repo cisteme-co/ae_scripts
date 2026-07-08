@@ -7,7 +7,7 @@ function handleNewCut(
 	takesCodes,
 	workerInput,
 	takeInput,
-	mode
+	mode,
 ) {
 	// ────────────────────────────────────────────────
 	// CONSTANTS AND SETTINGS KEYS
@@ -38,7 +38,7 @@ function handleNewCut(
 	var projectWorkFolder = projectFolder.fsName;
 
 	var templateFolder = new Folder(
-		projectWorkFolder + '/assets/templates/compositing'
+		projectWorkFolder + '/assets/templates/compositing',
 	);
 	if (!templateFolder.exists) {
 		alert('Template folder not found:\n' + templateFolder.fsName);
@@ -105,7 +105,7 @@ function handleNewCut(
 
 	if (!imageFile.exists) {
 		imageFile = File(
-			rootFolder + '/_project_box/assets/poster_placeholder.jpg'
+			rootFolder + '/_project_box/assets/poster_placeholder.jpg',
 		);
 	}
 
@@ -127,8 +127,12 @@ function handleNewCut(
 
 	selectGroup.add('statictext', undefined, 'Project');
 	var projectDropText =
-		projectsDrop && projectsDrop.selection ? projectsDrop.selection.text : '---';
-	var projectDrop = selectGroup.add('dropdownlist', undefined, [projectDropText]);
+		projectsDrop && projectsDrop.selection
+			? projectsDrop.selection.text
+			: '---';
+	var projectDrop = selectGroup.add('dropdownlist', undefined, [
+		projectDropText,
+	]);
 	projectDrop.selection = 0;
 	projectDrop.enabled = false;
 
@@ -172,28 +176,32 @@ function handleNewCut(
 	var framerateDrop = parametersGroup.add(
 		'dropdownlist',
 		undefined,
-		framerates
+		framerates,
 	);
 	framerateDrop.selection = Math.min(
 		savedFramerateIndex,
-		framerates.length - 1
+		framerates.length - 1,
 	);
 	framerateDrop.onChange = function () {
 		app.settings.saveSetting(
 			section,
 			framerateKey,
-			framerateDrop.selection.index.toString()
+			framerateDrop.selection.index.toString(),
 		);
 	};
 
-	parametersGroup.add('statictext', undefined, mode === 'lighting' ? 'Template' : 'Take');
+	parametersGroup.add(
+		'statictext',
+		undefined,
+		mode === 'lighting' ? 'Template' : 'Take',
+	);
 	var takesDrop = parametersGroup.add('dropdownlist', undefined, takes);
 	takesDrop.selection = Math.min(savedTakeIndex, takes.length - 1);
 	takesDrop.onChange = function () {
 		app.settings.saveSetting(
 			section,
 			takeKey,
-			takesDrop.selection.index.toString()
+			takesDrop.selection.index.toString(),
 		);
 	};
 
@@ -205,7 +213,11 @@ function handleNewCut(
 	createButton.margins = [0, 10, 0, 10];
 	createButton.onClick = function () {
 		// Validation: Ensure project and episode are selected
-		if (!projectsDrop || !projectsDrop.selection || projectsDrop.selection.text === '---') {
+		if (
+			!projectsDrop ||
+			!projectsDrop.selection ||
+			projectsDrop.selection.text === '---'
+		) {
 			alert('Please select a project first.');
 			return;
 		}
@@ -236,7 +248,7 @@ function handleNewCut(
 				seconds,
 				frames,
 				workerInput,
-				mode
+				mode,
 			);
 		} else {
 			createCut(
@@ -249,14 +261,14 @@ function handleNewCut(
 				seconds,
 				frames,
 				workerInput,
-				mode
+				mode,
 			);
 		}
 
 		if (takeInput && takesDrop.selection) {
 			var selectedCode = takesCodes[takesDrop.selection.index];
 			var takeCode = extractTakeCode(selectedCode);
-			
+
 			if (takeCode) {
 				takeInput.text = takeCode.toLowerCase();
 			} else {
@@ -301,12 +313,12 @@ function handleNewCut(
 
 		group.add('statictext', undefined, 'TIME (');
 
-		group.secondsInput = group.add('edittext', undefined, '6');
+		group.secondsInput = group.add('edittext', undefined, '');
 		group.secondsInput.characters = 3;
 
 		group.add('statictext', undefined, '+');
 
-		group.framesInput = group.add('edittext', undefined, '0');
+		group.framesInput = group.add('edittext', undefined, '');
 		group.framesInput.characters = 3;
 
 		group.add('statictext', undefined, ')');
@@ -317,8 +329,8 @@ function handleNewCut(
 	}
 
 	// Add a new cut row with specified cut text
-	function add_btn(cut) {
-		add_row(maingroup, cut);
+	function add_btn() {
+		add_row(maingroup, '');
 	}
 
 	// Remove last cut row if more than one

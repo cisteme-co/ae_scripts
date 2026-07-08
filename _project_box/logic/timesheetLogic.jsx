@@ -234,10 +234,14 @@ function makeRadioBtn(captions, applyBtn, cellPanel) {
 
 	if (!captions.length) return;
 
-	var x = 5,
-		y = 5;
+	// Use auto-layout so buttons don't drift on resize
+	cellPanel.orientation = 'column';
+	cellPanel.alignChildren = ['left', 'top'];
+	cellPanel.spacing = 3;
+
 	for (var i = 0; i < captions.length; i++) {
-		var rb = cellPanel.add('radiobutton', [x, y, x + 150, y + 20], captions[i]);
+		var rb = cellPanel.add('radiobutton', undefined, captions[i]);
+		rb.alignment = ['left', 'top'];
 		rb.idx = i;
 
 		rb.onClick = function () {
@@ -246,8 +250,9 @@ function makeRadioBtn(captions, applyBtn, cellPanel) {
 		};
 
 		radioBtns.push(rb);
-		y += 23;
 	}
+
+	cellPanel.layout.layout(true);
 }
 
 // ───────────────────────────────
@@ -315,7 +320,7 @@ function applyCells(inOutPoint, emptyCell) {
 		emptys,
 		emptyTimes,
 		inOutPoint,
-		emptyCell
+		emptyCell,
 	) {
 		if (lyr.canSetTimeRemapEnabled == false) {
 			return;
@@ -334,7 +339,7 @@ function applyCells(inOutPoint, emptyCell) {
 				rp.setInterpolationTypeAtKey(
 					i,
 					KeyframeInterpolationType.HOLD,
-					KeyframeInterpolationType.HOLD
+					KeyframeInterpolationType.HOLD,
 				);
 			}
 			switch (emptyCell) {
@@ -363,7 +368,7 @@ function applyCells(inOutPoint, emptyCell) {
 								bpv.setInterpolationTypeAtKey(
 									i,
 									KeyframeInterpolationType.HOLD,
-									KeyframeInterpolationType.HOLD
+									KeyframeInterpolationType.HOLD,
 								);
 							}
 						}
@@ -385,7 +390,7 @@ function applyCells(inOutPoint, emptyCell) {
 						opa.setInterpolationTypeAtKey(
 							i,
 							KeyframeInterpolationType.HOLD,
-							KeyframeInterpolationType.HOLD
+							KeyframeInterpolationType.HOLD,
 						);
 					}
 					break;
