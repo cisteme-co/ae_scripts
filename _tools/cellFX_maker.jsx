@@ -45,6 +45,20 @@ function findOrCreateBin(name, parent) {
 	return (parent ? parent.items : app.project.items).addFolder(name);
 }
 
+function findWorkComps() {
+	var workComps = [];
+	for (var i = 1; i <= app.project.numItems; i++) {
+		var item = app.project.item(i);
+		if (
+			item instanceof CompItem &&
+			item.name.toLowerCase().indexOf('_work') !== -1
+		) {
+			workComps.push(item);
+		}
+	}
+	return workComps;
+}
+
 function getLightingFolders() {
 	var binSozai = null;
 	for (var i = 1; i <= app.project.numItems; i++) {
@@ -96,7 +110,7 @@ if (mySelectedItems.length) {
 				'Selected item "' +
 					item.name +
 					'" is not a Footage Item.\n' +
-					'Please select only footage files.'
+					'Please select only footage files.',
 			);
 			continue;
 		}
@@ -116,7 +130,7 @@ if (mySelectedItems.length) {
 			item.height,
 			1,
 			item.duration,
-			1 / item.frameDuration
+			1 / item.frameDuration,
 		);
 		cellComp.layers.add(item);
 
@@ -133,7 +147,7 @@ if (mySelectedItems.length) {
 			cellComp.height,
 			1,
 			cellComp.duration,
-			1 / cellComp.frameDuration
+			1 / cellComp.frameDuration,
 		);
 		var cellFXLayer = cellFXComp.layers.add(cellComp);
 
@@ -152,7 +166,7 @@ if (mySelectedItems.length) {
 		// Try anti-alias plugins
 		var antiAliasPluginFound = false;
 		var antiAliasEffect = cellFXLayer.Effects.addProperty(
-			'PSOFT ANTI-ALIASING'
+			'PSOFT ANTI-ALIASING',
 		);
 		if (antiAliasEffect) {
 			antiAliasPluginFound = true;
@@ -169,8 +183,61 @@ if (mySelectedItems.length) {
 				Alerts.alertMissingPlugin(['PSOFT ANTI-ALIASING', 'OLM Smoother']);
 			} else {
 				alert(
-					'PSOFT ANTI-ALIASING or OLM Smoother plugin is not installed.\nPlease install the plugin.'
+					'PSOFT ANTI-ALIASING or OLM Smoother plugin is not installed.\nPlease install the plugin.',
 				);
+			}
+		}
+
+		var cellFXComp = getComp(cellComp.name + '_cellFX');
+
+		if (findWorkComps().length === 0) {
+			alert('No work comps found. Please create a work comp.');
+			continue;
+		} else {
+			for (var j = 0; j < findWorkComps().length; j++) {
+				var workComp = findWorkComps()[j];
+				var newLayer = workComp.layers.add(cellFXComp);
+				newLayer.label = 11;
+
+				var newName = cellFXComp.name.replace(/_cellFX$/i, '');
+				var newBase = getCellSortName(cellFXComp);
+				var isShita = /(?:shita|sita)$/i.test(newName);
+
+				if (isShita) {
+					// Place immediately below its base
+					for (var i = 1; i <= workComp.numLayers; i++) {
+						var layer = workComp.layer(i);
+
+						if (layer === newLayer) continue;
+						if (!(layer.source instanceof CompItem)) continue;
+
+						var other = layer.source.name.replace(/_cellFX$/i, '');
+
+						if (other.toLowerCase() === newBase.toLowerCase()) {
+							newLayer.moveAfter(layer);
+							break;
+						}
+					}
+				} else {
+					// Find the first CellFX layer alphabetically BEFORE us.
+					// Since AE is top->bottom, names go G,F,E,D,C,B,A.
+
+					for (var i = 1; i <= workComp.numLayers; i++) {
+						var layer = workComp.layer(i);
+
+						if (layer === newLayer) continue;
+						if (!(layer.source instanceof CompItem)) continue;
+						if (!/_cellFX$/i.test(layer.source.name)) continue;
+
+						var otherBase = getCellSortName(layer.source);
+
+						// Found first smaller letter
+						if (otherBase < newBase) {
+							newLayer.moveBefore(layer);
+							break;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -186,4 +253,32 @@ if (mySelectedItems.length) {
 	} else {
 		alert('セルを選択してください');
 	}
+}
+
+function getCellSortName(compOrName) {
+	var name = typeof compOrName === 'string' ? compOrName : compOrName.name;
+
+	name = name.replace(/_cellFX$/i, '');
+
+	// Remove _shita/_sita for sorting
+	name = name.replace(/[ _-]?(?:shita|sita)$/i, '');
+
+	return name.toUpperCase();
+}
+
+function customSortCellFX(a, b) {
+	var nameA = getCellSortName(a);
+	var nameB = getCellSortName(b);
+
+	if (nameA < nameB) return -1;
+	if (nameA > nameB) return 1;
+
+	// Same base (A vs A_shita)
+	var aIsBottom = /(?:shita|sita)$/i.test(a.name);
+	var bIsBottom = /(?:shita|sita)$/i.test(b.name);
+
+	if (aIsBottom && !bIsBottom) return 1;
+	if (!aIsBottom && bIsBottom) return -1;
+
+	return 0;
 }

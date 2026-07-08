@@ -330,6 +330,8 @@ function setupBins(isLighting) {
 // ────────────────────────────────────────────────
 function applyCellFXAndInsert(isLighting) {
 	var createdFXComps = [];
+	var maxWidth = 0;
+	var maxHeight = 0;
 
 	// 1. Collect all FootageItems in sequence bin
 	var bins = setupBins(isLighting);
@@ -375,6 +377,8 @@ function applyCellFXAndInsert(isLighting) {
 			item.duration,
 			1 / item.frameDuration,
 		);
+		maxWidth = Math.max(maxWidth, item.width);
+		maxHeight = Math.max(maxHeight, item.height);
 		var cellFXLayer = cellFXComp.layers.add(cellComp);
 
 		if (isLighting) {
@@ -421,11 +425,43 @@ function applyCellFXAndInsert(isLighting) {
 	// 4. Insert sorted cellFX comps into each work comp
 	for (var k = 0; k < workComps.length; k++) {
 		var wComp = workComps[k];
+		var newWidth = maxWidth;
+		var newHeight = maxHeight;
+
+		if (wComp.width !== newWidth) {
+			wComp.width = newWidth;
+		}
+
+		if (wComp.height !== newHeight) {
+			wComp.height = newHeight;
+		}
 
 		// Add in reverse so stacking order matches sorted order
 		for (var m = createdFXComps.length - 1; m >= 0; m--) {
-			var newLyr = wComp.layers.add(createdFXComps[m]);
+			var comp = createdFXComps[m];
+			var newLyr = wComp.layers.add(comp);
 			newLyr.label = 11; // Orange
+
+			var name = comp.name.replace(/_cellFX$/, '');
+
+			// Detect "sita"/"shita" variants
+			var match = name.match(/^(.*?)[ _-]?(?:shita|sita)$/i);
+
+			if (match) {
+				var baseName = match[1];
+
+				// Look for the base layer (A, B, etc.)
+				for (var n = 1; n <= wComp.numLayers; n++) {
+					var target = wComp.layer(n);
+					var targetName = target.name.replace(/_cellFX$/, '');
+
+					if (targetName.toLowerCase() === baseName.toLowerCase()) {
+						// Place directly underneath the base layer
+						newLyr.moveAfter(target);
+						break;
+					}
+				}
+			}
 		}
 	}
 }

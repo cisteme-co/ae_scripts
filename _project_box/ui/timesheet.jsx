@@ -110,7 +110,7 @@
 
 		var inOutPoint = panelGroup.add('checkbox', undefined, L.inOutPoint);
 		inOutPoint.alignment = ['fill', 'top'];
-		inOutPoint.value = false;
+		inOutPoint.value = true;
 
 		// ───────────────────────────────
 		// Right column: output & action
