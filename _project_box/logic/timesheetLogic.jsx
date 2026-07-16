@@ -7,6 +7,7 @@ var cellDataV = null; // Parsed/processed cell data for UI usage
 var radioBtns = []; // Array of UI radio button controls
 var selectedIndex = -1; // Index of currently selected radio button
 var emptyCell = 0; // Placeholder flag for empty cell mode
+var _cellPanel = null; // Reference to the cell panel used for radio buttons
 
 // ───────────────────────────────
 // Localization dictionary for alerts/messages
@@ -70,12 +71,19 @@ function clearAll(edInfo) {
 // Utility: Clear all radio buttons from UI and reset selection
 // ───────────────────────────────
 function clearRadioBtns() {
-	if (radioBtns.length > 0) {
-		for (var i = radioBtns.length - 1; i >= 0; i--) {
-			radioBtns[i].visible = false;
-			radioBtns[i] = null;
-			radioBtns.pop();
+	// Remove all children from the panel by index (more reliable than remove(element))
+	if (_cellPanel && _cellPanel.children) {
+		while (_cellPanel.children.length > 0) {
+			try {
+				_cellPanel.remove(0);
+			} catch (e) {
+				break;
+			}
 		}
+		// Reset the layout cursor so new buttons start from the top
+		try {
+			_cellPanel.layout.layout(true);
+		} catch (e) {}
 	}
 	selectedIndex = -1;
 	radioBtns = [];
@@ -230,6 +238,7 @@ function analysisCellData(obj) {
 // Dynamically create radio buttons for each caption, update applyBtn label on click
 // ───────────────────────────────
 function makeRadioBtn(captions, applyBtn, cellPanel) {
+	_cellPanel = cellPanel; // store reference so clearRadioBtns can drain it
 	clearRadioBtns();
 
 	if (!captions.length) return;
