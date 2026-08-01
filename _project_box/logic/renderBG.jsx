@@ -669,6 +669,86 @@ function renderBG() {
 						return;
 					}
 				}
+
+				// Auto-add H.264 MP4 to the check folder if this item only has .mov outputs
+				var hasMovOut = false;
+				var hasMp4Out = false;
+				for (var mScan = 0; mScan < itemData.outputs.length; mScan++) {
+					var scanPath =
+						itemData.outputs[mScan].finalPath ||
+						itemData.outputs[mScan].tempPath;
+					if (scanPath) {
+						var scanExt = scanPath.split('.').pop().toLowerCase();
+						if (scanExt === 'mov') hasMovOut = true;
+						if (scanExt === 'mp4') hasMp4Out = true;
+					}
+				}
+				if (hasMovOut && !hasMp4Out) {
+					try {
+						var newOM = item.outputModules.add();
+						var newOMIdx = item.numOutputModules;
+						var sanitizedMP4Name = sanitizeFilename(itemData.compName);
+						var h264Template = 'H.264 - Match Render Settings -  5 Mbps';
+						for (var tIdx = 0; tIdx < newOM.templates.length; tIdx++) {
+							if (newOM.templates[tIdx] === h264Template) {
+								try {
+									newOM.applyTemplate(h264Template);
+								} catch (e) {}
+								break;
+							}
+						}
+						var mp4Base = getNthParentFolders(app.project.file, 5);
+						if (mp4Base) {
+							var mp4FolderPath = mp4Base.fullName + '/to_send/撮影/check';
+							createFolderSafe(mp4FolderPath);
+							var mp4Folder = new Folder(mp4FolderPath);
+							var newOutData = {
+								omIndex: newOMIdx,
+								hasFile: true,
+								tempPath: null,
+								finalPath: null,
+							};
+							if (is_win_os) {
+								var finalMP4 = new File(
+									mp4Folder.fsName + '\\' + sanitizedMP4Name + '.mp4',
+								);
+								var tempMP4Name =
+									'ae_render_' +
+									timestamp +
+									'_i' +
+									itemData.index +
+									'_m' +
+									newOMIdx +
+									'.mp4';
+								var tempMP4 = new File(Folder.temp.fsName + '\\' + tempMP4Name);
+								var safeTempMP4 = tempMP4.fsName.replace(/'/g, "''");
+								var safeFinalMP4 = finalMP4.fsName.replace(/'/g, "''");
+								moveCommands.push(
+									'powershell -Command "Move-Item -LiteralPath \'' +
+										safeTempMP4 +
+										"' -Destination '" +
+										safeFinalMP4 +
+										'\' -Force"',
+								);
+								newOutData.tempPath = tempMP4.fsName;
+								newOutData.finalPath = finalMP4.fsName;
+								newOM.file = new File(tempMP4.fsName);
+							} else {
+								var targetMP4 = new File(
+									mp4Folder.fullName + '/' + sanitizedMP4Name + '.mp4',
+								);
+								newOM.file = new File(targetMP4.fsName);
+								newOutData.tempPath = targetMP4.fsName;
+							}
+							itemData.outputs.push(newOutData);
+							$.writeln('  Auto-added H.264 MP4: ' + sanitizedMP4Name + '.mp4');
+						}
+					} catch (addMP4Err) {
+						$.writeln(
+							'  Warning: Could not add H.264 module: ' + addMP4Err.toString(),
+						);
+					}
+				}
 			}
 		} catch (pathErr) {
 			alert('Error in path setting:\n' + pathErr.toString());
@@ -681,7 +761,6 @@ function renderBG() {
 		// Save
 		var af = app.project.file;
 
-		// Move temp file back to Folder.temp to avoid Japanese characters in project path
 		var tmpAep = new File(
 			Folder.temp.fullName + '/' + 'aerender_temp_' + timestamp + '.aep',
 		);

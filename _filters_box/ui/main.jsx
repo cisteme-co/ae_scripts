@@ -109,6 +109,11 @@ function runFile(filePath) {
 
 	if (file.open('r')) {
 		try {
+			// Let the preset script know its own path,
+			// since eval() means $.fileName would otherwise
+			// point back to this launcher script
+			$.global.CURRENT_PRESET_FILE = filePath;
+
 			eval(file.read());
 		} catch (e) {
 			alert('Error running script:\n' + e.toString());

@@ -7,7 +7,7 @@ function removeSequenceNumber(name) {
 	// or digits at end (3-4 digits)
 	return name.replace(
 		/(\_?\[\d{3,4}([~-]\d{3,4})?\](\.\w+)?|\_\d{3,4}(\.\w+)?$|\d{3,4}$)/,
-		''
+		'',
 	);
 }
 
@@ -21,8 +21,8 @@ function getFolder(theName) {
 			return item;
 		}
 	}
-	// Folder not found, create it now
-	return app.project.items.addFolder(theName);
+
+	return null;
 }
 
 function getComp(theName) {
