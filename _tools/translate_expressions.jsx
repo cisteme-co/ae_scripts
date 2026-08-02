@@ -79,7 +79,6 @@
 	}
 
 	function replaceSliderControl() {
-		app.beginUndoGroup('Rename Slider Control to スライダー制御');
 
 		var proj = app.project;
 		if (!proj) return;
@@ -112,7 +111,6 @@
 			}
 		}
 
-		app.endUndoGroup();
 	}
 	// ─────────────────────────────────────────────
 	// Recursively process a property and its subproperties
