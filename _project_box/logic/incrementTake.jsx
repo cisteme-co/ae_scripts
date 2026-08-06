@@ -34,7 +34,12 @@ function incrementTake(take) {
 	// ───────────────────────────────────────────────
 	// 2. PREPARE NEW FILENAME
 	// ───────────────────────────────────────────────
-	var newSave = fileName.replace(oldTake, take);
+	// Case-insensitive: file may store take in different case than what parseFilename returns
+	var oldTakeRe = new RegExp(
+		oldTake.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+		'i',
+	);
+	var newSave = fileName.replace(oldTakeRe, take);
 	var newSaveFile = new File(app.project.file.parent.fsName + '/' + newSave);
 
 	// ───────────────────────────────────────────────
@@ -46,7 +51,7 @@ function incrementTake(take) {
 			projItem instanceof CompItem &&
 			projItem.name.toLowerCase().indexOf(oldTake.toLowerCase()) !== -1
 		) {
-			projItem.name = projItem.name.replace(oldTake, take);
+			projItem.name = projItem.name.replace(oldTakeRe, take);
 		}
 	}
 

@@ -105,6 +105,75 @@ function renderBG() {
 		var timestamp = new Date().getTime();
 		var moveCommands = [];
 
+		// When the temp path has non-ASCII chars (Japanese username), find an ASCII-safe folder.
+		// MUST verify the resolved fsName is ASCII – NTFS junctions can remap paths back to Japanese.
+		// Tests actual write access to confirm usability before committing.
+		var tempDir;
+		if (is_win_os) {
+			var rawTempPath = Folder.temp.fsName;
+			if (/[^\x00-\x7F]/.test(rawTempPath)) {
+				var diagLines = ['rawTempPath: ' + rawTempPath];
+
+				// Build candidate list from environment variables + hardcoded fallbacks
+				var candidates = [];
+				try {
+					var pubEnv = system
+						.callSystem('cmd /c echo %PUBLIC%')
+						.replace(/[\r\n]/g, '')
+						.trim();
+					if (pubEnv && !/[^\x00-\x7F]/.test(pubEnv))
+						candidates.push(pubEnv + '\\ae_tmp');
+				} catch (e) {}
+				candidates.push('C:\\Users\\Public\\ae_tmp');
+
+				for (var ci = 0; ci < candidates.length && !tempDir; ci++) {
+					var cand = candidates[ci];
+					if (/[^\x00-\x7F]/.test(cand)) {
+						diagLines.push('SKIP (non-ASCII candidate): ' + cand);
+						continue;
+					}
+					try {
+						var cf = new Folder(cand);
+						if (!cf.exists) cf.create();
+						var resolved = cf.fsName;
+						if (/[^\x00-\x7F]/.test(resolved)) {
+							diagLines.push('SKIP (non-ASCII resolved): ' + resolved);
+							continue;
+						}
+						// Test actual write access
+						var testF = new File(
+							resolved + '\\ae_write_test_' + timestamp + '.tmp',
+						);
+						if (testF.open('w')) {
+							testF.write('ok');
+							testF.close();
+							if (testF.exists) testF.remove();
+							tempDir = resolved;
+							diagLines.push('OK: ' + tempDir);
+						} else {
+							diagLines.push('SKIP (not writable): ' + resolved);
+						}
+					} catch (e) {
+						diagLines.push('SKIP (error): ' + cand + ' — ' + e.toString());
+					}
+				}
+
+				if (!tempDir) {
+					alert(
+						'renderBG: Could not find a writable ASCII temp folder.\n\n' +
+							diagLines.join('\n') +
+							'\n\nAerrender will likely fail. Please ensure C:\\Users\\Public is accessible.',
+					);
+					tempDir = rawTempPath; // last resort
+				}
+				$.writeln('tempDir resolved: ' + tempDir + '\n' + diagLines.join('\n'));
+			} else {
+				tempDir = rawTempPath;
+			}
+		} else {
+			tempDir = Folder.temp.fullName;
+		}
+
 		function wq(s) {
 			return '"' + s + '"';
 		}
@@ -524,7 +593,7 @@ function renderBG() {
 									outputData.omIndex +
 									'.' +
 									ext;
-								tempFilePath = new File(Folder.temp.fsName + '\\' + tempName);
+								tempFilePath = new File(tempDir + '\\' + tempName);
 
 								// Store move command for later
 								// Use powershell for moving to handle Unicode paths correctly
@@ -534,13 +603,13 @@ function renderBG() {
 								var safeTempPath = tempFilePath.fsName.replace(/'/g, "''");
 								var safeFinalPath = finalFilePath.fsName.replace(/'/g, "''");
 
-								var moveCmd =
-									'powershell -Command "Move-Item -LiteralPath \'' +
-									safeTempPath +
-									"' -Destination '" +
-									safeFinalPath +
-									'\' -Force"';
-								moveCommands.push(moveCmd);
+								moveCommands.push(
+									"Move-Item -LiteralPath '" +
+										safeTempPath +
+										"' -Destination '" +
+										safeFinalPath +
+										"' -Force",
+								);
 
 								// AE 2025 Robustness: Set the path to the temp file
 								$.writeln('  [WIN] Temp Path: ' + tempFilePath.fsName);
@@ -720,15 +789,15 @@ function renderBG() {
 									'_m' +
 									newOMIdx +
 									'.mp4';
-								var tempMP4 = new File(Folder.temp.fsName + '\\' + tempMP4Name);
+								var tempMP4 = new File(tempDir + '\\' + tempMP4Name);
 								var safeTempMP4 = tempMP4.fsName.replace(/'/g, "''");
 								var safeFinalMP4 = finalMP4.fsName.replace(/'/g, "''");
 								moveCommands.push(
-									'powershell -Command "Move-Item -LiteralPath \'' +
+									"Move-Item -LiteralPath '" +
 										safeTempMP4 +
 										"' -Destination '" +
 										safeFinalMP4 +
-										'\' -Force"',
+										"' -Force",
 								);
 								newOutData.tempPath = tempMP4.fsName;
 								newOutData.finalPath = finalMP4.fsName;
@@ -762,13 +831,13 @@ function renderBG() {
 		var af = app.project.file;
 
 		var tmpAep = new File(
-			Folder.temp.fullName + '/' + 'aerender_temp_' + timestamp + '.aep',
+			tempDir + '/' + 'aerender_temp_' + timestamp + '.aep',
 		);
 		var logFile = new File(
-			Folder.temp.fullName + '/' + 'aerender_log_' + timestamp + '.txt',
+			tempDir + '/' + 'aerender_log_' + timestamp + '.txt',
 		);
 		var pidFile = new File(
-			Folder.temp.fullName + '/' + 'aerender_pid_' + timestamp + '.txt',
+			tempDir + '/' + 'aerender_pid_' + timestamp + '.txt',
 		);
 
 		try {
@@ -874,10 +943,7 @@ function renderBG() {
 				return;
 			}
 
-			shellCmdFile = new File(
-				Folder.temp.fullName + '/aerender_' + timestamp + '.bat',
-			);
-			var aerShort = getShortPath(aer);
+			shellCmdFile = new File(tempDir + '/aerender_' + timestamp + '.bat');
 
 			cmd = '@echo off\r\n';
 			cmd += 'chcp 65001 >nul\r\n';
@@ -885,6 +951,7 @@ function renderBG() {
 
 			// Write start marker to log immediately
 			cmd += 'echo RENDER_STARTED > ' + wq(logFile.fsName) + '\r\n';
+			cmd += 'SET RENDER_FAILED=0\r\n';
 
 			// Generate aerender command for each item using the -output flag
 			for (var rIdx = 0; rIdx < queueInfo.length; rIdx++) {
@@ -899,7 +966,7 @@ function renderBG() {
 					rItem.index +
 					')...\r\n';
 
-				itemCmd += wq(aerShort) + ' -project ' + wq(tmpAep.fsName);
+				itemCmd += wq(aer.fsName) + ' -project ' + wq(tmpAep.fsName);
 				itemCmd += ' -rqindex ' + rItem.index;
 
 				// CRITICAL FIX: Ensure -output flags map to modules correctly.
@@ -911,17 +978,12 @@ function renderBG() {
 					var oData = rItem.outputs[oIdx];
 					if (oData.tempPath) {
 						if (/[^\x00-\x7F]/.test(oData.tempPath)) {
-							// Panic mode: This path has non-ASCII chars!
-							// We must alert user? No, we are in a loop.
-							// But this explains why it fails.
 							cmd +=
 								'echo WARNING: Non-ASCII characters in temp path for Module ' +
 								oData.omIndex +
 								'\r\n';
 						}
-
 						hasTempPath = true;
-						// Log what we expect
 						cmd +=
 							'echo   Module ' +
 							oData.omIndex +
@@ -932,50 +994,53 @@ function renderBG() {
 				}
 
 				if (hasTempPath) {
+					// Use -output flags to explicitly override paths, bypassing whatever is saved in the .aep
+					for (var oIdx2 = 0; oIdx2 < rItem.outputs.length; oIdx2++) {
+						var oData2 = rItem.outputs[oIdx2];
+						if (oData2.tempPath) {
+							itemCmd += ' -output ' + wq(oData2.tempPath);
+						}
+					}
 					itemCmd += ' -sound ON >> ' + wq(logFile.fsName) + ' 2>&1\r\n';
 					cmd += itemCmd;
 
-					// Add error check and delay to ensure stability between renders
+					// Capture ERRORLEVEL immediately; a second command would reset it
+					cmd += 'SET _EL=%ERRORLEVEL%\r\n';
 					cmd +=
-						'if %ERRORLEVEL% NEQ 0 echo Error rendering item ' +
+						'if %_EL% NEQ 0 echo Error rendering item ' +
 						(rIdx + 1) +
-						' >> ' +
+						' (exit code %_EL%) >> ' +
 						wq(logFile.fsName) +
 						'\r\n';
+					cmd += 'if %_EL% NEQ 0 SET RENDER_FAILED=1\r\n';
 					cmd += 'timeout /t 2 /nobreak >nul\r\n';
 				}
 			}
 
+			// Write finish marker BEFORE cleanup so the UI detects completion immediately
+			cmd += 'IF %RENDER_FAILED% EQU 1 (\r\n';
+			cmd +=
+				'  echo AERENDER FINISHED - FAILED >> ' + wq(logFile.fsName) + '\r\n';
+			cmd += ') ELSE (\r\n';
+			cmd +=
+				'  echo AERENDER FINISHED - SUCCESS >> ' + wq(logFile.fsName) + '\r\n';
+			cmd += ')\r\n';
+
+			// Single PowerShell invocation for all moves (avoids per-call startup overhead)
 			if (moveCommands.length > 0) {
-				cmd += 'echo Moving files to destination...\r\n';
-				for (var moveIdx = 0; moveIdx < moveCommands.length; moveIdx++) {
-					cmd += moveCommands[moveIdx] + '\r\n';
-				}
+				cmd += 'powershell -Command "' + moveCommands.join('; ') + '"\r\n';
 			}
 
-			cmd += 'echo Cleaning up...\r\n';
 			cmd +=
 				'if exist ' +
 				wq(tmpAep.fsName) +
 				' del ' +
 				wq(tmpAep.fsName) +
 				' 2>nul\r\n';
-
-			// Small delay to ensure all logs are flushed before the final marker
-			cmd += 'timeout /t 2 /nobreak >nul\r\n';
-
-			cmd += 'echo Render process finished.\r\n';
-			// Log finish at the very end to signal success to UI
-			cmd +=
-				'echo AERENDER FINISHED - Render process finished. >> ' +
-				wq(logFile.fsName) +
-				' 2>&1\r\n';
 			cmd += 'exit\r\n';
 		} else {
 			aer = new File(Folder.appPackage.parent.fullName + '/aerender');
-			shellCmdFile = new File(
-				Folder.temp.fullName + '/aerender_' + timestamp + '.command',
-			);
+			shellCmdFile = new File(tempDir + '/aerender_' + timestamp + '.command');
 
 			cmd = '#!/bin/bash\r\n';
 			cmd += 'echo "Starting render..."\r\n';
@@ -1003,6 +1068,16 @@ function renderBG() {
 			}
 			shellCmdFile.write(cmd);
 			shellCmdFile.close();
+		} else {
+			alert(
+				'Failed to write batch file.\n\nPath: ' +
+					shellCmdFile.fsName +
+					'\nTemp dir: ' +
+					tempDir +
+					'\nRaw temp: ' +
+					Folder.temp.fsName,
+			);
+			return;
 		}
 
 		if (is_win_os == false) {
@@ -1012,39 +1087,112 @@ function renderBG() {
 		if (shellCmdFile.exists == true) {
 			$.sleep(500);
 
-			if (is_win_os) {
-				// To make it TRULY non-blocking and HIDDEN on Windows, we use a VBScript wrapper.
-				// This launches the batch file without any CMD window popping up.
-				var vbsFile = new File(
-					Folder.temp.fullName + '/aerender_launcher_' + timestamp + '.vbs',
-				);
-				if (vbsFile.open('w')) {
-					// WshShell.Run(command, windowStyle, waitOnReturn)
-					// windowStyle: 0 = Hidden window
-					vbsFile.write('Set WshShell = CreateObject("WScript.Shell")\n');
-					vbsFile.write(
-						'WshShell.Run "cmd.exe /c " & Chr(34) & "' +
+			try {
+				$.writeln('Launching shell. Temp dir: ' + tempDir);
+				$.writeln('Batch file: ' + shellCmdFile.fsName);
+				$.writeln('Batch file exists: ' + shellCmdFile.exists);
+
+				if (is_win_os) {
+					// To make it TRULY non-blocking and HIDDEN on Windows, we use a VBScript wrapper.
+					// This launches the batch file without any CMD window popping up.
+					var vbsFile = new File(
+						tempDir + '/aerender_launcher_' + timestamp + '.vbs',
+					);
+					$.writeln('VBS file path: ' + vbsFile.fsName);
+
+					if (vbsFile.open('w')) {
+						// WshShell.Run(command, windowStyle, waitOnReturn)
+						// windowStyle: 0 = Hidden window
+						var vbsContent =
+							'Set WshShell = CreateObject("WScript.Shell")\n' +
+							'WshShell.Run "cmd.exe /c " & Chr(34) & "' +
 							shellCmdFile.fsName +
-							'" & Chr(34), 0, false\n',
-					);
-					vbsFile.close();
+							'" & Chr(34), 0, false\n';
+						$.writeln('VBS content:\n' + vbsContent);
+						vbsFile.write(vbsContent);
+						vbsFile.close();
 
-					vbsFile.execute();
+						try {
+							var execOk = vbsFile.execute();
+							if (!execOk) {
+								throw new Error(
+									'vbsFile.execute() returned false.\n' +
+										'VBS path: ' +
+										vbsFile.fsName +
+										'\n' +
+										'WSH may be disabled on this system.',
+								);
+							}
+						} catch (execErr) {
+							throw new Error(
+								'vbsFile.execute() failed.\n' +
+									'VBS path: ' +
+									vbsFile.fsName +
+									'\n' +
+									'Error: ' +
+									execErr.toString(),
+							);
+						}
 
-					// Cleanup VBS after a short delay
-					app.scheduleTask(
-						'try { var f = new File("' +
-							vbsFile.fsName.replace(/\\/g, '/') +
-							'"); if(f.exists) f.remove(); } catch(e) {}',
-						5000,
-						false,
-					);
+						// Cleanup VBS after a short delay
+						app.scheduleTask(
+							'try { var f = new File("' +
+								vbsFile.fsName.replace(/\\/g, '/') +
+								'"); if(f.exists) f.remove(); } catch(e) {}',
+							5000,
+							false,
+						);
+					} else {
+						// Fallback: try executing the batch file directly
+						$.writeln(
+							'WARNING: Could not open VBS file for writing. Falling back to direct execute.',
+						);
+						try {
+							shellCmdFile.execute();
+							$.writeln(
+								'shellCmdFile.execute() (fallback) called successfully.',
+							);
+						} catch (fbErr) {
+							throw new Error(
+								'shellCmdFile.execute() fallback failed.\n' +
+									'Batch path: ' +
+									shellCmdFile.fsName +
+									'\n' +
+									'Error: ' +
+									fbErr.toString(),
+							);
+						}
+					}
 				} else {
-					// Fallback if VBS creation fails
-					shellCmdFile.execute();
+					try {
+						shellCmdFile.execute();
+						$.writeln('shellCmdFile.execute() called successfully.');
+					} catch (execErr) {
+						throw new Error(
+							'shellCmdFile.execute() failed.\n' +
+								'Script path: ' +
+								shellCmdFile.fsName +
+								'\n' +
+								'Error: ' +
+								execErr.toString(),
+						);
+					}
 				}
-			} else {
-				shellCmdFile.execute();
+			} catch (launchErr) {
+				var launchErrMsg =
+					'Failed to launch background render process.\n\n' +
+					launchErr.toString() +
+					'\n\nOS Locale: ' +
+					($.locale || 'unknown') +
+					'\nTemp folder (raw): ' +
+					Folder.temp.fsName +
+					'\nTemp folder (used): ' +
+					tempDir +
+					'\nBatch file: ' +
+					shellCmdFile.fsName;
+				$.writeln('LAUNCH ERROR: ' + launchErrMsg);
+				alert(launchErrMsg);
+				return;
 			}
 
 			// Show UI
