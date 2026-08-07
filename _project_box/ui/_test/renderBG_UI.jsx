@@ -133,6 +133,8 @@ function showRenderBG_UI(
 	var pollTask = null;
 	var renderOutcomeDetected = false;
 	var lastFramesDone = 0;
+	var fakeProgressTicks = 0;
+	var hasRenderStarted = false;
 
 	cancelBtn.onClick = function () {
 		if (confirm(t('confirmCancel'))) {
@@ -224,7 +226,81 @@ function showRenderBG_UI(
 		}
 	};
 
-	// IMPROVED: Auto-close check with better error handling
+	function processOutcome(content) {
+		if (renderOutcomeDetected) return;
+		renderOutcomeDetected = true;
+
+		if (pollTask != null) {
+			try {
+				app.cancelTask(pollTask);
+			} catch (e) {}
+			pollTask = null;
+		}
+
+		progressBar.value = 100;
+		progressText.text = t('finished');
+
+		var isSuccess = false;
+		if (content && content.length > 0) {
+			var upper = content.toUpperCase();
+			// Explicit markers written by the batch file are authoritative
+			if (upper.indexOf('AERENDER FINISHED - SUCCESS') !== -1) {
+				isSuccess = true;
+			} else if (upper.indexOf('AERENDER FINISHED - FAILED') !== -1) {
+				isSuccess = false;
+			} else {
+				// No explicit marker — fall back to aerender output heuristics
+				// 合計経過時間 = Japanese 'TOTAL TIME ELAPSED'
+				var hasTimeElapsed =
+					upper.indexOf('TOTAL TIME ELAPSED') !== -1 ||
+					content.indexOf('合計経過時間') !== -1;
+				if (hasTimeElapsed || upper.indexOf('LOG ENDED') !== -1) {
+					isSuccess = true;
+				}
+				if (!isSuccess && totalFrames > 0) {
+					var fm = content.match(/PROGRESS:.*?\(\d+\)/gi);
+					if (fm && fm.length >= totalFrames) isSuccess = true;
+				}
+				// Non-fatal AE warnings must not override TOTAL TIME ELAPSED (render completed normally)
+				if (
+					!hasTimeElapsed &&
+					(upper.indexOf('AERENDER ERROR') !== -1 ||
+						upper.indexOf('AFTER EFFECTS ERROR:') !== -1 ||
+						upper.indexOf(': ERROR ') !== -1)
+				) {
+					isSuccess = false;
+				}
+			}
+		}
+
+		if (isSuccess) {
+			alert(t('renderSuccess'));
+			if (logFilePath) {
+				try {
+					var lf = new File(logFilePath);
+					if (lf.exists) lf.remove();
+				} catch (e) {}
+			}
+			if (pidFilePath) {
+				try {
+					var pf = new File(pidFilePath);
+					if (pf.exists) pf.remove();
+				} catch (e) {}
+			}
+		} else {
+			alert(t('renderFailed'));
+			if (logFilePath) {
+				try {
+					var lf = new File(logFilePath);
+					if (lf.exists) lf.execute();
+				} catch (e) {}
+			}
+		}
+		try {
+			win.close();
+		} catch (e) {}
+	}
+
 	function checkStatus() {
 		try {
 			var framesDone = 0;
@@ -253,8 +329,11 @@ function showRenderBG_UI(
 						}
 					}
 
-					if (hasStarted) {
-						if (totalFrames > 0) {
+					if (hasStarted) hasRenderStarted = true;
+
+					if (hasRenderStarted) {
+						if (framesDone > 0 && totalFrames > 0) {
+							// Real progress from aerender PROGRESS lines
 							var percent = Math.min(
 								100,
 								Math.round((framesDone / totalFrames) * 100),
@@ -268,18 +347,22 @@ function showRenderBG_UI(
 								'/' +
 								totalFrames +
 								')';
-						} else {
+						} else if (framesDone > lastFramesDone) {
+							lastFramesDone = framesDone;
+							if (progressBar.value < 95) progressBar.value += 1;
 							progressText.text = t('rendering') + framesDone + ' frames';
-							if (framesDone > lastFramesDone) {
-								lastFramesDone = framesDone;
-								if (progressBar.value < 95) progressBar.value += 1;
-							}
+						} else {
+							// Aerender buffers stdout to file — advance bar slowly for visual feedback
+							fakeProgressTicks++;
+							if (fakeProgressTicks % 2 === 0 && progressBar.value < 85)
+								progressBar.value += 1;
+							progressText.text = t('rendering') + '...';
 						}
 					} else {
 						progressText.text = t('preparing');
 					}
 				} else {
-					progressText.text = t('preparing');
+					if (!hasRenderStarted) progressText.text = t('preparing');
 				}
 			}
 
@@ -288,118 +371,45 @@ function showRenderBG_UI(
 				try {
 					var content = readLogSafely(logFilePath);
 
-					// Robust check for multiple possible finish markers
+					// Frame count is ASCII and encoding-agnostic — most reliable signal
+					var cFm = content.match(/PROGRESS:.*?\(\d+\)/gi);
+					var cCount = cFm ? cFm.length : 0;
 					var isFinishedMarkerFound =
-						content.indexOf('Render process finished.') !== -1 ||
-						content.indexOf('AERENDER FINISHED') !== -1;
+						content.indexOf('AERENDER FINISHED') !== -1 ||
+						content.toUpperCase().indexOf('TOTAL TIME ELAPSED') !== -1 ||
+						content.indexOf('合計経過時間') !== -1 ||
+						(totalFrames > 0 && cCount >= totalFrames);
 
 					if (isFinishedMarkerFound && !renderOutcomeDetected) {
-						renderOutcomeDetected = true;
-
-						if (pollTask != null) {
-							try {
-								app.cancelTask(pollTask);
-							} catch (e) {
-								// Ignore
-							}
-							pollTask = null;
-						}
-
-						progressBar.value = 100;
-						progressText.text = t('finished');
-
-						// Final check of the log file to determine success/failure
-						var isSuccess = false;
-						if (logFilePath) {
-							var finalContent = readLogSafely(logFilePath);
-
-							if (finalContent && finalContent.length > 0) {
-								var upperContent = finalContent.toUpperCase();
-
-								// Check for success markers
-								if (
-									upperContent.indexOf('TOTAL TIME ELAPSED') !== -1 ||
-									upperContent.indexOf('AERENDER FINISHED') !== -1 ||
-									upperContent.indexOf('LOG ENDED') !== -1
-								) {
-									isSuccess = true;
-								}
-
-								// Fallback: If we rendered all frames, consider it success
-								if (!isSuccess && totalFrames > 0) {
-									var finalMatches =
-										finalContent.match(/PROGRESS:.*?\(\d+\)/gi);
-									var finalFramesDone = finalMatches ? finalMatches.length : 0;
-									if (finalFramesDone >= totalFrames) {
-										isSuccess = true;
-									}
-								}
-
-								// Check for explicit error markers
-								if (
-									upperContent.indexOf('AERENDER ERROR') !== -1 ||
-									upperContent.indexOf('AFTER EFFECTS ERROR:') !== -1 ||
-									upperContent.indexOf(': ERROR ') !== -1
-								) {
-									isSuccess = false;
-								}
-							}
-						}
-
-						// Show alert based on outcome
-						if (isSuccess) {
-							alert(t('renderSuccess'));
-							// Cleanup log file only on success
-							if (logFilePath) {
-								try {
-									var lf = new File(logFilePath);
-									if (lf.exists) lf.remove();
-								} catch (e) {}
-							}
-							// Cleanup PID file on success
-							if (pidFilePath) {
-								try {
-									var pf = new File(pidFilePath);
-									if (pf.exists) pf.remove();
-								} catch (e) {}
-							}
-						} else {
-							alert(t('renderFailed'));
-							// Open log file directly on failure
-							if (logFilePath) {
-								try {
-									var lf = new File(logFilePath);
-									if (lf.exists) {
-										lf.execute();
-									}
-								} catch (e) {
-									$.writeln('Error opening log file: ' + e.toString());
-								}
-							}
-						}
-
-						// IMPROVED: Use unique global reference for scheduled close
-						var closeWinId = 'closeRenderWin_' + new Date().getTime();
-						$.global[closeWinId] = win;
-						app.scheduleTask(
-							'try { if($.global.' +
-								closeWinId +
-								') { $.global.' +
-								closeWinId +
-								'.close(); $.global.' +
-								closeWinId +
-								' = null; } } catch(e) {}',
-							500,
-							false,
-						);
+						processOutcome(content);
 					}
 				} catch (e) {
 					// ADDED: Error handling for file existence check
 					$.writeln('Error checking temp file: ' + e.toString());
 				}
 			}
+
+			// Backup: tmpAep deleted by the batch means render + cleanup are done.
+			// Guard: only fire when the log actually confirms completion, so a
+			// missing/unsaved tmpAep doesn’t trigger a false failure mid-render.
+			if (!renderOutcomeDetected && tempFilePath && hasRenderStarted) {
+				try {
+					if (!new File(tempFilePath).exists) {
+						var bkContent = readLogSafely(logFilePath);
+						var bkUpper = bkContent.toUpperCase();
+						var bkFm = bkContent.match(/PROGRESS:.*?\(\d+\)/gi);
+						var bkCount = bkFm ? bkFm.length : 0;
+						var bkDone =
+							bkUpper.indexOf('AERENDER FINISHED') !== -1 ||
+							bkUpper.indexOf('TOTAL TIME ELAPSED') !== -1 ||
+							bkContent.indexOf('合計経過時間') !== -1 ||
+							(totalFrames > 0 && bkCount >= totalFrames) ||
+							bkCount > 0; // any rendered frames + tmpAep gone = batch completed
+						if (bkDone) processOutcome(bkContent);
+					}
+				} catch (e) {}
+			}
 		} catch (e) {
-			// ADDED: Catch-all error handler to prevent crashes
 			$.writeln('Error in checkStatus: ' + e.toString());
 		}
 	}
