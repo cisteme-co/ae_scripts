@@ -63,13 +63,13 @@ if (!isValid(app.project.activeItem)) {
 			if (dropShadow) {
 				dropShadow.property('dropShadow/mode2').expression =
 					'var mode = effect("Dropdown Menu Control")("Menu");\n' +
-					'mode == 1 ? 1 :\n' +
-					'mode == 2 ? 5 :\n' +
-					'mode == 3 ? 11 :\n' +
-					'mode == 4 ? 16 :\n' +
-					'mode == 5 ? 17 :\n' +
-					'mode == 6 ? 18 :\n' +
-					'1;';
+					'var result = 1;\n' +
+					'if (mode == 2) { result = 5; }\n' +
+					'else if (mode == 3) { result = 11; }\n' +
+					'else if (mode == 4) { result = 16; }\n' +
+					'else if (mode == 5) { result = 17; }\n' +
+					'else if (mode == 6) { result = 18; }\n' +
+					'result;';
 
 				dropShadow.property('dropShadow/color').expression =
 					'effect("Color")("ADBE Color Control-0001")';
@@ -90,7 +90,7 @@ if (!isValid(app.project.activeItem)) {
 					'effect("Size")("ADBE Slider Control-0001")';
 			} else {
 				alert(
-					'Drop Shadow Layer Style property not found on layer: ' + layer.name
+					'Drop Shadow Layer Style property not found on layer: ' + layer.name,
 				);
 			}
 		}

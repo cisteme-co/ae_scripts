@@ -80,10 +80,16 @@ function renderBG() {
 				}
 			}
 			if (!hasMp4) {
-				var newOM = qItem.addOutput();
+				// outputModules is a real Collection object on RenderQueueItem;
+				// .add() creates and returns a new OutputModule directly — no
+				// menu-command / UI-selection hack needed.
+				var newOM = qItem.outputModules.add();
 				try {
 					newOM.applyTemplate('H.264 - レンダリング設定を一致 - 5 Mbps');
-				} catch (e) {}
+				} catch (e) {
+					alert(e.toString());
+				}
+
 				var mp4Base = getNthParentFolders(app.project.file, 5);
 				var mp4Folder = new Folder(mp4Base.fsName + '/to_send/撮影/check');
 				if (!mp4Folder.exists) mp4Folder.create();
